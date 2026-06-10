@@ -24,6 +24,7 @@ class GenerateRequest(BaseModel):
 class SaveUnitRequest(BaseModel):
     source_prompt: str
     unit: GeneratedUnit
+    kind: str = "unit"
 
 
 @router.post("/generate", dependencies=[Depends(check_pin)])
@@ -38,7 +39,11 @@ def generate(req: GenerateRequest) -> GeneratedUnit:
 
 @router.post("", dependencies=[Depends(check_pin)])
 def save_unit(req: SaveUnitRequest, session: Session = Depends(get_session)):
-    unit = Unit(title=req.unit.title, source_prompt=req.source_prompt)
+    unit = Unit(
+        title=req.unit.title,
+        source_prompt=req.source_prompt,
+        kind="exam" if req.kind == "exam" else "unit",
+    )
     session.add(unit)
     session.commit()
     session.refresh(unit)
@@ -86,6 +91,7 @@ def list_units(session: Session = Depends(get_session)):
             {
                 "id": u.id,
                 "title": u.title,
+                "kind": u.kind,
                 "active": u.active,
                 "created_at": u.created_at,
                 "word_count": word_count,

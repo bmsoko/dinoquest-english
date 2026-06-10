@@ -14,6 +14,7 @@ export function ParentZone() {
   const [units, setUnits] = useState<UnitSummary[]>([])
   const [error, setError] = useState<string | null>(null)
   const [savedMsg, setSavedMsg] = useState(false)
+  const [kind, setKind] = useState<'unit' | 'exam'>('unit')
 
   const loadUnits = () => api.get('/units').then((r) => setUnits(r.data))
 
@@ -46,7 +47,7 @@ export function ParentZone() {
     setSaving(true)
     setError(null)
     try {
-      await api.post('/units', { source_prompt: prompt, unit: preview })
+      await api.post('/units', { source_prompt: prompt, unit: preview, kind })
       setPreview(null)
       setPrompt('')
       setSavedMsg(true)
@@ -90,7 +91,22 @@ export function ParentZone() {
         </Link>
       </div>
 
-      <p className="mb-4 text-ink-soft">{t.pz_intro}</p>
+      <div className="mb-4 flex gap-2">
+        <button
+          onClick={() => setKind('unit')}
+          className={`rounded-xl px-4 py-2 font-bold border-2 ${kind === 'unit' ? 'bg-jungle text-white border-jungle-deep' : 'bg-white border-sand-deep text-ink-soft'}`}
+        >
+          {t.pz_tab_unit}
+        </button>
+        <button
+          onClick={() => setKind('exam')}
+          className={`rounded-xl px-4 py-2 font-bold border-2 ${kind === 'exam' ? 'bg-coral text-white border-coral-deep' : 'bg-white border-sand-deep text-ink-soft'}`}
+        >
+          {t.pz_tab_exam}
+        </button>
+      </div>
+
+      <p className="mb-4 text-ink-soft">{kind === 'exam' ? t.pz_exam_intro : t.pz_intro}</p>
 
       <input
         type="password"
@@ -163,7 +179,14 @@ export function ParentZone() {
             className="flex items-center justify-between rounded-xl border-2 border-sand-deep bg-white px-4 py-3"
           >
             <div>
-              <p className="font-bold">{unit.title}</p>
+              <p className="font-bold">
+                {unit.kind === 'exam' && (
+                  <span className="mr-1.5 rounded-md bg-coral-pale px-1.5 py-0.5 text-xs font-extrabold text-coral-deep">
+                    🎯 EXAMEN
+                  </span>
+                )}
+                {unit.title}
+              </p>
               <p className="text-xs text-ink-soft">
                 {unit.word_count} {t.pz_words} · {new Date(unit.created_at).toLocaleDateString()}
               </p>

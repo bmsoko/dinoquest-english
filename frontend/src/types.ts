@@ -91,7 +91,15 @@ export interface GeneratedUnit {
 export interface UnitSummary {
   id: number
   title: string
+  kind: 'unit' | 'exam'
   active: boolean
   created_at: string
   word_count: number
+}
+
+export interface ExamStatus {
+  exists: boolean
+  title?: string
+  words_total?: number
+  words_mastered?: number
 }

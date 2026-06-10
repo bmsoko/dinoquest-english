@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { api } from '../api'
 import { useLang } from '../i18n'
@@ -36,6 +36,8 @@ const ACTIVITY_COMPONENTS: Record<ActivityType, typeof ListenChoose> = {
 
 export function Play() {
   const { t } = useLang()
+  const [searchParams] = useSearchParams()
+  const scope = searchParams.get('mode') === 'exam' ? 'exam' : 'all'
   const [player, setPlayer] = useState<PlayerState | null>(null)
   const [species, setSpecies] = useState<Species[]>([])
   const [phase, setPhase] = useState<Phase>('wheel')
@@ -64,7 +66,7 @@ export function Play() {
   const startRound = async (type: ActivityType) => {
     setPhase('loading')
     try {
-      const res = await api.get('/play/round', { params: { type, count: 6 } })
+      const res = await api.get('/play/round', { params: { type, count: 6, scope } })
       setActivity(type)
       setItems(res.data.items)
       setPhase('round')
@@ -73,7 +75,7 @@ export function Play() {
       const fallbacks: ActivityType[] = ['listen_choose', 'dictation', 'fill_in', 'unscramble', 'memory']
       for (const fb of fallbacks.filter((f) => f !== type)) {
         try {
-          const res = await api.get('/play/round', { params: { type: fb, count: 6 } })
+          const res = await api.get('/play/round', { params: { type: fb, count: 6, scope } })
           setActivity(fb)
           setItems(res.data.items)
           setPhase('round')
@@ -132,6 +134,11 @@ export function Play() {
 
         {phase === 'wheel' && (
           <div className="flex flex-col items-center gap-6 pt-6">
+            {scope === 'exam' && (
+              <span className="animate-pop rounded-2xl bg-coral-pale border-2 border-coral px-4 py-1 font-display font-extrabold text-coral-deep">
+                🎯 {t.exam_mode}
+              </span>
+            )}
             <h1 className="font-display text-3xl font-extrabold">{t.next_mission}</h1>
             <Wheel onResult={startRound} />
           </div>

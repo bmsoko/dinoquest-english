@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { useLang } from '../i18n'
-import type { PlayerState } from '../types'
+import type { ExamStatus, PlayerState } from '../types'
 import { EggBar } from '../components/EggBar'
 
 export function Home() {
   const { t, lang, toggle } = useLang()
   const [player, setPlayer] = useState<PlayerState | null>(null)
+  const [exam, setExam] = useState<ExamStatus | null>(null)
 
   useEffect(() => {
     api.get('/player').then((r) => setPlayer(r.data))
+    api.get('/play/exam').then((r) => setExam(r.data))
   }, [])
 
   const companion = player?.dinos.find((d) => d.id === player.companion_id)
@@ -59,6 +61,26 @@ export function Home() {
       >
         ▶ {t.play}
       </Link>
+
+      {exam?.exists && (
+        <Link
+          to="/play?mode=exam"
+          className="btn-chunky bg-coral border-coral-deep text-white text-center w-full max-w-xs px-8 py-4"
+        >
+          <span className="text-2xl">🎯 {t.exam_prep}</span>
+          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-white/30">
+            <div
+              className="h-full rounded-full bg-white transition-all duration-700"
+              style={{
+                width: `${exam.words_total ? Math.round(((exam.words_mastered ?? 0) / exam.words_total) * 100) : 0}%`,
+              }}
+            />
+          </div>
+          <span className="text-xs font-bold opacity-90">
+            {exam.words_mastered}/{exam.words_total} {t.exam_words}
+          </span>
+        </Link>
+      )}
 
       <div className="flex gap-4">
         <Link

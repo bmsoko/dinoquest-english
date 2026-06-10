@@ -35,9 +35,33 @@ def get_player(session: Session) -> PlayerState:
     return player
 
 
+@router.get("/exam")
+def exam_status(session: Session = Depends(get_session)):
+    exams = session.exec(
+        select(Unit).where(Unit.active == True, Unit.kind == "exam")  # noqa: E712
+    ).all()
+    if not exams:
+        return {"exists": False}
+    exam_ids = [u.id for u in exams]
+    words = session.exec(select(Word).where(Word.unit_id.in_(exam_ids))).all()
+    stats = {s.word_id: s for s in session.exec(select(WordStat)).all()}
+    mastered = sum(1 for w in words if stats.get(w.id) and stats[w.id].box >= 3)
+    return {
+        "exists": True,
+        "title": exams[0].title,
+        "words_total": len(words),
+        "words_mastered": mastered,
+    }
+
+
 @router.get("/round")
-def get_round(type: str, count: int = 6, session: Session = Depends(get_session)):
-    active_unit_ids = [u.id for u in session.exec(select(Unit).where(Unit.active == True)).all()]  # noqa: E712
+def get_round(
+    type: str, count: int = 6, scope: str = "all", session: Session = Depends(get_session)
+):
+    query = select(Unit).where(Unit.active == True)  # noqa: E712
+    if scope == "exam":
+        query = query.where(Unit.kind == "exam")
+    active_unit_ids = [u.id for u in session.exec(query).all()]
     if not active_unit_ids:
         raise HTTPException(status_code=404, detail="No hay unidades activas")
 

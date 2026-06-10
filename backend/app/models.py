@@ -8,6 +8,7 @@ class Unit(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
     source_prompt: str
+    kind: str = Field(default="unit", index=True)  # "unit" | "exam"
     active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
