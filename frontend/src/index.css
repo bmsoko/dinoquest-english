@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Baloo 2", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+
+  --color-sand: #fbf3e2;
+  --color-sand-deep: #f3e6c9;
+  --color-ink: #233d2e;
+  --color-ink-soft: #51695a;
+  --color-jungle: #1d9e75;
+  --color-jungle-deep: #0f6e56;
+  --color-jungle-pale: #d6f3e7;
+  --color-sun: #f5a623;
+  --color-sun-deep: #c77f0a;
+  --color-sun-pale: #fdeccb;
+  --color-coral: #f0704b;
+  --color-coral-deep: #c14d2c;
+  --color-coral-pale: #fde0d5;
+  --color-sky: #4aa3df;
+  --color-sky-deep: #2a6fa3;
+  --color-berry: #9b6ddb;
+  --color-berry-deep: #6f44ab;
+
+  --animate-pop: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-wiggle: wiggle 0.45s ease-in-out;
+  --animate-bounce-big: bounce-big 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-float-up: float-up 1s ease-out forwards;
+  --animate-shake: shake 0.4s ease-in-out;
+  --animate-crack: crack 0.5s ease-in-out infinite;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+@keyframes bounce-big {
+  0% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-18px) scale(1.15); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes float-up {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-70px); opacity: 0; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+@keyframes crack {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-sand);
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(29, 158, 117, 0.07) 0, rgba(29, 158, 117, 0.07) 140px, transparent 141px),
+    radial-gradient(circle at 88% 75%, rgba(245, 166, 35, 0.08) 0, rgba(245, 166, 35, 0.08) 180px, transparent 181px),
+    radial-gradient(circle at 75% 12%, rgba(240, 112, 75, 0.06) 0, rgba(240, 112, 75, 0.06) 110px, transparent 111px);
+  color: var(--color-ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+/* Chunky pressed-3D button — the signature interaction of the kid UI */
+.btn-chunky {
+  font-family: var(--font-display);
+  font-weight: 800;
+  border-radius: 1.25rem;
+  border-bottom-width: 6px;
+  border-bottom-style: solid;
+  transition: transform 0.08s ease, border-bottom-width 0.08s ease, filter 0.15s ease;
+  user-select: none;
+  cursor: pointer;
+}
+.btn-chunky:active:not(:disabled) {
+  transform: translateY(4px);
+  border-bottom-width: 2px;
+}
+.btn-chunky:disabled {
+  filter: saturate(0.4) brightness(1.05);
+  cursor: default;
+}
+
+.card-toy {
+  background: white;
+  border-radius: 1.5rem;
+  border: 3px solid var(--color-sand-deep);
+  box-shadow: 0 6px 0 rgba(35, 61, 46, 0.08);
+}
