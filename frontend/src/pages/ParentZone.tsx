@@ -6,8 +6,10 @@ import type { GeneratedUnit, PlayerListItem, UnitSummary } from '../types'
 
 export function ParentZone() {
   const { t } = useLang()
+  const [unlocked, setUnlocked] = useState(sessionStorage.getItem('parentUnlocked') === '1')
+  const [gatePin, setGatePin] = useState('')
+  const [gateError, setGateError] = useState(false)
   const [prompt, setPrompt] = useState('')
-  const [pin, setPin] = useState(localStorage.getItem('parentPin') ?? '')
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState<GeneratedUnit | null>(null)
@@ -27,9 +29,23 @@ export function ParentZone() {
     })
 
   useEffect(() => {
+    if (!unlocked) return
     loadUnits()
     loadPlayers()
-  }, [])
+  }, [unlocked])
+
+  const tryUnlock = async () => {
+    localStorage.setItem('parentPin', gatePin)
+    try {
+      await api.get('/units/pin-check')
+      sessionStorage.setItem('parentUnlocked', '1')
+      setUnlocked(true)
+    } catch {
+      localStorage.removeItem('parentPin')
+      setGateError(true)
+      setGatePin('')
+    }
+  }
 
   const savePlayer = async (p: PlayerListItem, clearPin = false) => {
     const e = edits[p.id]
@@ -46,11 +62,6 @@ export function ParentZone() {
     if (!confirm(`¿Borrar jugador "${p.name}" y todo su progreso?`)) return
     await api.delete(`/players/${p.id}`)
     loadPlayers()
-  }
-
-  const savePin = (value: string) => {
-    setPin(value)
-    localStorage.setItem('parentPin', value)
   }
 
   const generate = async () => {
@@ -108,6 +119,38 @@ export function ParentZone() {
       )
     : []
 
+  if (!unlocked) {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center gap-4 p-6">
+        <div className={`card-toy w-full max-w-xs p-6 text-center flex flex-col gap-4 ${gateError ? 'animate-shake' : ''}`}>
+          <span className="text-5xl">🔒</span>
+          <h1 className="font-display text-xl font-extrabold">{t.pz_title}</h1>
+          <input
+            value={gatePin}
+            onChange={(e) => { setGatePin(e.target.value.replace(/\D/g, '').slice(0, 6)); setGateError(false) }}
+            onKeyDown={(e) => e.key === 'Enter' && tryUnlock()}
+            inputMode="numeric"
+            type="password"
+            autoFocus
+            placeholder="PIN"
+            className="w-full rounded-xl border-2 border-sand-deep px-4 py-3 text-center font-display text-3xl font-extrabold tracking-[0.5em] focus:border-jungle focus:outline-none"
+          />
+          {gateError && <p className="font-bold text-coral-deep">{t.wrong_pin}</p>}
+          <button
+            onClick={tryUnlock}
+            disabled={!gatePin}
+            className="btn-chunky bg-jungle border-jungle-deep text-white text-xl px-8 py-3"
+          >
+            {t.enter}
+          </button>
+        </div>
+        <Link to="/" className="text-sm font-bold text-ink-soft underline">
+          ← {t.back}
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto min-h-screen max-w-3xl p-6 font-body">
       <div className="flex items-center justify-between mb-6">
@@ -133,14 +176,6 @@ export function ParentZone() {
       </div>
 
       <p className="mb-4 text-ink-soft">{kind === 'exam' ? t.pz_exam_intro : t.pz_intro}</p>
-
-      <input
-        type="password"
-        value={pin}
-        onChange={(e) => savePin(e.target.value)}
-        placeholder={t.pz_pin}
-        className="mb-3 w-40 rounded-lg border-2 border-sand-deep bg-white px-3 py-1.5 text-sm"
-      />
 
       <textarea
         value={prompt}

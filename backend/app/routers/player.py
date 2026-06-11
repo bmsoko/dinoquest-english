@@ -8,6 +8,7 @@ from ..db import get_session
 from ..game import week_start_of, xp_into_level
 from ..models import OwnedDino, Player, WordStat
 from ..species import SPECIES, SPECIES_BY_ID
+from .units import check_pin
 
 router = APIRouter(prefix="/player", tags=["player"])
 players_router = APIRouter(prefix="/players", tags=["players"])
@@ -146,7 +147,7 @@ class UpdatePlayerRequest(BaseModel):
     pin: str | None = None  # "" clears the PIN
 
 
-@players_router.patch("/{pid}")
+@players_router.patch("/{pid}", dependencies=[Depends(check_pin)])
 def update_player(pid: int, req: UpdatePlayerRequest, session: Session = Depends(get_session)):
     player = get_player(session, pid)
     if req.name is not None:
@@ -173,7 +174,7 @@ def verify_pin(pid: int, req: VerifyPinRequest, session: Session = Depends(get_s
     return {"ok": not player.pin or player.pin == "".join(ch for ch in req.pin if ch.isdigit())}
 
 
-@players_router.delete("/{pid}")
+@players_router.delete("/{pid}", dependencies=[Depends(check_pin)])
 def delete_player(pid: int, session: Session = Depends(get_session)):
     players = session.exec(select(Player)).all()
     if len(players) <= 1:

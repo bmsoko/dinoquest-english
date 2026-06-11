@@ -17,6 +17,11 @@ def check_pin(x_parent_pin: str | None = Header(default=None)) -> None:
         raise HTTPException(status_code=403, detail="PIN incorrecto")
 
 
+@router.get("/pin-check", dependencies=[Depends(check_pin)])
+def pin_check():
+    return {"ok": True}
+
+
 class GenerateRequest(BaseModel):
     prompt: str
 
