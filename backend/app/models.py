@@ -36,6 +36,7 @@ class Player(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     avatar: str = "🦖"
+    pin: Optional[str] = None  # kid-proofing only, not real security
     xp: int = 0
     level: int = 1
     egg_progress: int = 0  # 0..100

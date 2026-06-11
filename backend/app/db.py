@@ -31,6 +31,12 @@ def init_db() -> None:
             ]:
                 conn.execute(text(f"DROP TABLE {table}"))
 
+    if "player" in tables and "pin" not in [
+        c["name"] for c in inspector.get_columns("player")
+    ]:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE player ADD COLUMN pin VARCHAR"))
+
     SQLModel.metadata.create_all(engine)
 
     from sqlmodel import Session, select

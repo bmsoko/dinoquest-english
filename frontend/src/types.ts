@@ -70,6 +70,7 @@ export interface PlayerListItem {
   id: number
   name: string
   avatar: string
+  has_pin: boolean
   level: number
   xp: number
   weekly_xp: number

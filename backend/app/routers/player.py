@@ -106,6 +106,7 @@ def list_players(session: Session = Depends(get_session)):
                 "id": p.id,
                 "name": p.name,
                 "avatar": p.avatar,
+                "has_pin": bool(p.pin),
                 "level": p.level,
                 "xp": p.xp,
                 "weekly_xp": current_weekly_xp(p),
@@ -119,6 +120,12 @@ def list_players(session: Session = Depends(get_session)):
 class CreatePlayerRequest(BaseModel):
     name: str
     avatar: str = "🦖"
+    pin: str = ""
+
+
+def clean_pin(pin: str) -> str | None:
+    pin = "".join(ch for ch in pin if ch.isdigit())[:6]
+    return pin or None
 
 
 @players_router.post("")
@@ -126,11 +133,44 @@ def create_player(req: CreatePlayerRequest, session: Session = Depends(get_sessi
     name = req.name.strip()[:20]
     if not name:
         raise HTTPException(status_code=400, detail="El nombre está vacío")
-    player = Player(name=name, avatar=req.avatar[:8] or "🦖")
+    player = Player(name=name, avatar=req.avatar[:8] or "🦖", pin=clean_pin(req.pin))
     session.add(player)
     session.commit()
     session.refresh(player)
     return {"id": player.id, "name": player.name, "avatar": player.avatar}
+
+
+class UpdatePlayerRequest(BaseModel):
+    name: str | None = None
+    avatar: str | None = None
+    pin: str | None = None  # "" clears the PIN
+
+
+@players_router.patch("/{pid}")
+def update_player(pid: int, req: UpdatePlayerRequest, session: Session = Depends(get_session)):
+    player = get_player(session, pid)
+    if req.name is not None:
+        name = req.name.strip()[:20]
+        if not name:
+            raise HTTPException(status_code=400, detail="El nombre está vacío")
+        player.name = name
+    if req.avatar is not None and req.avatar:
+        player.avatar = req.avatar[:8]
+    if req.pin is not None:
+        player.pin = clean_pin(req.pin)
+    session.add(player)
+    session.commit()
+    return {"id": player.id, "name": player.name, "avatar": player.avatar, "has_pin": bool(player.pin)}
+
+
+class VerifyPinRequest(BaseModel):
+    pin: str
+
+
+@players_router.post("/{pid}/verify")
+def verify_pin(pid: int, req: VerifyPinRequest, session: Session = Depends(get_session)):
+    player = get_player(session, pid)
+    return {"ok": not player.pin or player.pin == "".join(ch for ch in req.pin if ch.isdigit())}
 
 
 @players_router.delete("/{pid}")

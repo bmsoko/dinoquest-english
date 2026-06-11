@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { useLang } from '../i18n'
-import type { GeneratedUnit, UnitSummary } from '../types'
+import type { GeneratedUnit, PlayerListItem, UnitSummary } from '../types'
 
 export function ParentZone() {
   const { t } = useLang()
@@ -16,11 +16,37 @@ export function ParentZone() {
   const [savedMsg, setSavedMsg] = useState(false)
   const [kind, setKind] = useState<'unit' | 'exam'>('unit')
 
+  const [players, setPlayers] = useState<PlayerListItem[]>([])
+  const [edits, setEdits] = useState<Record<number, { name: string; pin: string }>>({})
+
   const loadUnits = () => api.get('/units').then((r) => setUnits(r.data))
+  const loadPlayers = () =>
+    api.get('/players').then((r) => {
+      setPlayers(r.data)
+      setEdits(Object.fromEntries(r.data.map((p: PlayerListItem) => [p.id, { name: p.name, pin: '' }])))
+    })
 
   useEffect(() => {
     loadUnits()
+    loadPlayers()
   }, [])
+
+  const savePlayer = async (p: PlayerListItem, clearPin = false) => {
+    const e = edits[p.id]
+    const payload: Record<string, string> = {}
+    if (e.name !== p.name) payload.name = e.name
+    if (clearPin) payload.pin = ''
+    else if (e.pin) payload.pin = e.pin
+    if (Object.keys(payload).length === 0) return
+    await api.patch(`/players/${p.id}`, payload)
+    loadPlayers()
+  }
+
+  const deletePlayer = async (p: PlayerListItem) => {
+    if (!confirm(`¿Borrar jugador "${p.name}" y todo su progreso?`)) return
+    await api.delete(`/players/${p.id}`)
+    loadPlayers()
+  }
 
   const savePin = (value: string) => {
     setPin(value)
@@ -170,6 +196,46 @@ export function ParentZone() {
           </div>
         </div>
       )}
+
+      <h2 className="mt-8 mb-3 font-display text-lg font-bold">{t.pz_players}</h2>
+      <div className="flex flex-col gap-2">
+        {players.map((p) => (
+          <div
+            key={p.id}
+            className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-sand-deep bg-white px-4 py-3"
+          >
+            <span className="text-3xl">{p.avatar}</span>
+            <input
+              value={edits[p.id]?.name ?? p.name}
+              onChange={(e) => setEdits({ ...edits, [p.id]: { ...edits[p.id], name: e.target.value } })}
+              maxLength={20}
+              className="w-36 rounded-lg border-2 border-sand-deep px-2 py-1 font-bold focus:border-jungle focus:outline-none"
+            />
+            <input
+              value={edits[p.id]?.pin ?? ''}
+              onChange={(e) =>
+                setEdits({ ...edits, [p.id]: { ...edits[p.id], pin: e.target.value.replace(/\D/g, '').slice(0, 6) } })
+              }
+              placeholder={p.has_pin ? `🔒 ${t.pz_pin_set}` : t.pz_no_pin}
+              inputMode="numeric"
+              className="w-28 rounded-lg border-2 border-sand-deep px-2 py-1 text-sm font-bold focus:border-jungle focus:outline-none"
+            />
+            <button onClick={() => savePlayer(p)} className="rounded-lg bg-jungle px-3 py-1.5 text-sm font-bold text-white">
+              {t.pz_save_player}
+            </button>
+            {p.has_pin && (
+              <button onClick={() => savePlayer(p, true)} className="text-sm font-bold text-ink-soft underline">
+                {t.pz_no_pin}
+              </button>
+            )}
+            {players.length > 1 && (
+              <button onClick={() => deletePlayer(p)} className="ml-auto text-sm font-bold text-coral-deep underline">
+                {t.pz_delete}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
 
       <h2 className="mt-8 mb-3 font-display text-lg font-bold">{t.pz_units}</h2>
       <div className="flex flex-col gap-2">

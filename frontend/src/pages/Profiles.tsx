@@ -13,20 +13,44 @@ export function Profiles() {
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [avatar, setAvatar] = useState(AVATARS[0])
+  const [pin, setPin] = useState('')
+  const [askPinFor, setAskPinFor] = useState<PlayerListItem | null>(null)
+  const [pinTry, setPinTry] = useState('')
+  const [pinError, setPinError] = useState(false)
 
   useEffect(() => {
     api.get('/players').then((r) => setPlayers(r.data))
   }, [])
 
-  const pick = (id: number) => {
+  const enter = (id: number) => {
     localStorage.setItem('playerId', String(id))
     navigate('/')
   }
 
+  const pick = (p: PlayerListItem) => {
+    if (p.has_pin) {
+      setAskPinFor(p)
+      setPinTry('')
+      setPinError(false)
+    } else {
+      enter(p.id)
+    }
+  }
+
+  const tryPin = async () => {
+    if (!askPinFor) return
+    const res = await api.post(`/players/${askPinFor.id}/verify`, { pin: pinTry })
+    if (res.data.ok) enter(askPinFor.id)
+    else {
+      setPinError(true)
+      setPinTry('')
+    }
+  }
+
   const create = async () => {
     if (!name.trim()) return
-    const res = await api.post('/players', { name: name.trim(), avatar })
-    pick(res.data.id)
+    const res = await api.post('/players', { name: name.trim(), avatar, pin })
+    enter(res.data.id)
   }
 
   return (
@@ -37,12 +61,14 @@ export function Profiles() {
         {players.map((p) => (
           <button
             key={p.id}
-            onClick={() => pick(p.id)}
+            onClick={() => pick(p)}
             className="card-toy btn-chunky flex flex-col items-center gap-1 p-5 bg-white border-sand-deep"
             style={{ borderWidth: '3px 3px 8px' }}
           >
             <span className="text-6xl">{p.avatar}</span>
-            <span className="font-display text-xl font-extrabold">{p.name}</span>
+            <span className="font-display text-xl font-extrabold">
+              {p.name} {p.has_pin && '🔒'}
+            </span>
             <span className="text-xs font-bold text-ink-soft">
               {t.level} {p.level} · 🦖 {p.dino_count}
             </span>
@@ -86,6 +112,13 @@ export function Profiles() {
               </button>
             ))}
           </div>
+          <input
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder={`🔒 ${t.secret_pin}`}
+            inputMode="numeric"
+            className="w-full rounded-xl border-2 border-sand-deep px-4 py-2 font-display text-lg font-bold focus:border-jungle focus:outline-none"
+          />
           <button
             onClick={create}
             disabled={!name.trim()}
@@ -93,6 +126,36 @@ export function Profiles() {
           >
             {t.create_player}
           </button>
+        </div>
+      )}
+
+      {askPinFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-6" onClick={() => setAskPinFor(null)}>
+          <div
+            className={`card-toy animate-pop w-full max-w-xs p-6 text-center flex flex-col gap-4 ${pinError ? 'animate-shake' : ''}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-5xl">{askPinFor.avatar}</span>
+            <h2 className="font-display text-xl font-extrabold">
+              🔒 {t.enter_pin} {askPinFor.name}
+            </h2>
+            <input
+              value={pinTry}
+              onChange={(e) => { setPinTry(e.target.value.replace(/\D/g, '').slice(0, 6)); setPinError(false) }}
+              onKeyDown={(e) => e.key === 'Enter' && tryPin()}
+              inputMode="numeric"
+              autoFocus
+              className="w-full rounded-xl border-2 border-sand-deep px-4 py-3 text-center font-display text-3xl font-extrabold tracking-[0.5em] focus:border-jungle focus:outline-none"
+            />
+            {pinError && <p className="font-bold text-coral-deep">{t.wrong_pin}</p>}
+            <button
+              onClick={tryPin}
+              disabled={!pinTry}
+              className="btn-chunky bg-jungle border-jungle-deep text-white text-xl px-8 py-3"
+            >
+              {t.enter}
+            </button>
+          </div>
         </div>
       )}
     </div>
