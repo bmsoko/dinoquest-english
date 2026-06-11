@@ -7,5 +7,7 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const pin = localStorage.getItem('parentPin')
   if (pin) config.headers['X-Parent-Pin'] = pin
+  const playerId = localStorage.getItem('playerId')
+  if (playerId) config.headers['X-Player-Id'] = playerId
   return config
 })

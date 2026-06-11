@@ -24,6 +24,7 @@ def on_startup() -> None:
 app.include_router(units.router, prefix="/api/v1")
 app.include_router(play.router, prefix="/api/v1")
 app.include_router(player.router, prefix="/api/v1")
+app.include_router(player.players_router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health")

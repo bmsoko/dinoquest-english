@@ -62,9 +62,6 @@ def save_unit(req: SaveUnitRequest, session: Session = Depends(get_session)):
         words_by_text[word.text.lower()] = word
     session.commit()
 
-    for word in words_by_text.values():
-        session.add(WordStat(word_id=word.id))
-
     for ex in req.unit.exercises:
         word = words_by_text.get((ex.word_text or "").strip().lower())
         payload = ex.model_dump(exclude={"type", "word_text", "difficulty"}, exclude_none=True)
@@ -119,8 +116,7 @@ def delete_unit(unit_id: int, session: Session = Depends(get_session)):
     for ex in session.exec(select(ExerciseItem).where(ExerciseItem.unit_id == unit_id)).all():
         session.delete(ex)
     for word in session.exec(select(Word).where(Word.unit_id == unit_id)).all():
-        stat = session.get(WordStat, word.id)
-        if stat:
+        for stat in session.exec(select(WordStat).where(WordStat.word_id == word.id)).all():
             session.delete(stat)
         session.delete(word)
     session.delete(unit)

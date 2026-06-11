@@ -57,9 +57,24 @@ export interface OwnedDino {
 }
 
 export interface PlayerState extends PlayerSummary {
+  id: number
+  name: string
+  avatar: string
+  weekly_xp: number
   last_played: string | null
   companion_id: number | null
   dinos: OwnedDino[]
+}
+
+export interface PlayerListItem {
+  id: number
+  name: string
+  avatar: string
+  level: number
+  xp: number
+  weekly_xp: number
+  streak: number
+  dino_count: number
 }
 
 export interface SpeciesStage {

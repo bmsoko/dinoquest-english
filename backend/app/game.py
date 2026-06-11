@@ -42,6 +42,11 @@ def stage_for_companion_xp(xp: int) -> int:
     return stage
 
 
+def week_start_of(d: date) -> date:
+    """Monday of the week containing d — the weekly score resets here."""
+    return d - timedelta(days=d.weekday())
+
+
 def updated_streak(streak: int, last_played: date | None, today: date) -> int:
     if last_played == today:
         return max(streak, 1)

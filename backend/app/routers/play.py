@@ -2,7 +2,7 @@ import json
 import random
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -14,29 +14,41 @@ from ..game import (
     roll_species,
     stage_for_companion_xp,
     updated_streak,
+    week_start_of,
     xp_into_level,
 )
-from ..models import ExerciseItem, OwnedDino, PlayerState, Unit, Word, WordStat
+from ..models import ExerciseItem, OwnedDino, Player, Unit, Word, WordStat
 from ..species import SPECIES_BY_ID
 
 router = APIRouter(prefix="/play", tags=["play"])
 
-# Leitner: lower boxes (struggling words) get picked far more often
+# Leitner: lower boxes (struggling words) get picked far more often.
+# Unseen words use the box-1 weight so new vocabulary shows up early.
 BOX_WEIGHTS = {1: 8, 2: 4, 3: 2, 4: 1}
 
 
-def get_player(session: Session) -> PlayerState:
-    player = session.get(PlayerState, 1)
+def get_player(session: Session, player_id: int) -> Player:
+    player = session.get(Player, player_id)
     if not player:
-        player = PlayerState(id=1)
-        session.add(player)
-        session.commit()
-        session.refresh(player)
+        raise HTTPException(status_code=404, detail="Jugador no encontrado")
     return player
 
 
+def roll_week(player: Player, today: date) -> None:
+    monday = week_start_of(today)
+    if player.week_start != monday:
+        player.week_start = monday
+        player.weekly_xp = 0
+
+
+def player_id_header(x_player_id: int = Header(default=1)) -> int:
+    return x_player_id
+
+
 @router.get("/exam")
-def exam_status(session: Session = Depends(get_session)):
+def exam_status(
+    player_id: int = Depends(player_id_header), session: Session = Depends(get_session)
+):
     exams = session.exec(
         select(Unit).where(Unit.active == True, Unit.kind == "exam")  # noqa: E712
     ).all()
@@ -44,7 +56,10 @@ def exam_status(session: Session = Depends(get_session)):
         return {"exists": False}
     exam_ids = [u.id for u in exams]
     words = session.exec(select(Word).where(Word.unit_id.in_(exam_ids))).all()
-    stats = {s.word_id: s for s in session.exec(select(WordStat)).all()}
+    stats = {
+        s.word_id: s
+        for s in session.exec(select(WordStat).where(WordStat.player_id == player_id)).all()
+    }
     mastered = sum(1 for w in words if stats.get(w.id) and stats[w.id].box >= 3)
     return {
         "exists": True,
@@ -56,7 +71,11 @@ def exam_status(session: Session = Depends(get_session)):
 
 @router.get("/round")
 def get_round(
-    type: str, count: int = 6, scope: str = "all", session: Session = Depends(get_session)
+    type: str,
+    count: int = 6,
+    scope: str = "all",
+    player_id: int = Depends(player_id_header),
+    session: Session = Depends(get_session),
 ):
     query = select(Unit).where(Unit.active == True)  # noqa: E712
     if scope == "exam":
@@ -86,11 +105,15 @@ def get_round(
     if not items:
         raise HTTPException(status_code=404, detail=f"No hay ejercicios de tipo {type}")
 
-    stats = {s.word_id: s for s in session.exec(select(WordStat)).all()}
+    stats = {
+        s.word_id: s
+        for s in session.exec(select(WordStat).where(WordStat.player_id == player_id)).all()
+    }
 
     def weight(item: ExerciseItem) -> int:
-        if item.word_id and item.word_id in stats:
-            return BOX_WEIGHTS.get(stats[item.word_id].box, 4)
+        if item.word_id:
+            stat = stats.get(item.word_id)
+            return BOX_WEIGHTS.get(stat.box, 4) if stat else BOX_WEIGHTS[1]
         return 3
 
     chosen: list[ExerciseItem] = []
@@ -129,17 +152,21 @@ class RoundResult(BaseModel):
 
 
 @router.post("/result")
-def post_result(req: RoundResult, session: Session = Depends(get_session)):
-    player = get_player(session)
+def post_result(
+    req: RoundResult,
+    player_id: int = Depends(player_id_header),
+    session: Session = Depends(get_session),
+):
+    player = get_player(session, player_id)
     today = date.today()
     events: list[dict] = []
 
     for r in req.results:
         if r.word_id is None:
             continue
-        stat = session.get(WordStat, r.word_id)
+        stat = session.get(WordStat, (r.word_id, player.id))
         if not stat:
-            stat = WordStat(word_id=r.word_id)
+            stat = WordStat(word_id=r.word_id, player_id=player.id)
         if r.correct:
             stat.correct += 1
             stat.box = min(4, stat.box + 1)
@@ -159,6 +186,9 @@ def post_result(req: RoundResult, session: Session = Depends(get_session)):
         events.append({"type": "level_up", "level": new_level})
     player.level = new_level
 
+    roll_week(player, today)
+    player.weekly_xp += xp_earned
+
     player.streak = updated_streak(player.streak, player.last_played, today)
     player.last_played = today
 
@@ -166,7 +196,7 @@ def post_result(req: RoundResult, session: Session = Depends(get_session)):
     while player.egg_progress >= 100:
         player.egg_progress -= 100
         species = roll_species()
-        dino = OwnedDino(species_id=species["id"])
+        dino = OwnedDino(player_id=player.id, species_id=species["id"])
         session.add(dino)
         session.commit()
         session.refresh(dino)
@@ -182,7 +212,7 @@ def post_result(req: RoundResult, session: Session = Depends(get_session)):
     # Companion gains the same XP and may evolve
     if player.companion_id:
         companion = session.get(OwnedDino, player.companion_id)
-        if companion:
+        if companion and companion.player_id == player.id:
             old_stage = companion.stage
             companion.xp += xp_earned
             companion.stage = stage_for_companion_xp(companion.xp)
@@ -213,5 +243,6 @@ def post_result(req: RoundResult, session: Session = Depends(get_session)):
             "level_needed": needed,
             "egg_progress": player.egg_progress,
             "streak": player.streak,
+            "weekly_xp": player.weekly_xp,
         },
     }
