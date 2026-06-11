@@ -28,13 +28,13 @@ W = [
     ("have dinner", "cenar", "They have dinner at 8 pm.", "🍽️", "Rutinas diarias"),
     ("go to bed", "irse a dormir", "I go to bed at 9 pm.", "🌙", "Rutinas diarias"),
     ("watch TV", "mirar televisión", "They watch TV after dinner.", "📺", "Rutinas diarias"),
-    ("Monday", "lunes", "I play basketball on Monday.", "1️⃣", "Días de la semana"),
-    ("Tuesday", "martes", "We have English on Tuesday.", "2️⃣", "Días de la semana"),
-    ("Wednesday", "miércoles", "He goes skating on Wednesday.", "3️⃣", "Días de la semana"),
-    ("Thursday", "jueves", "She reads a comic on Thursday.", "4️⃣", "Días de la semana"),
-    ("Friday", "viernes", "They watch TV on Friday.", "5️⃣", "Días de la semana"),
-    ("Saturday", "sábado", "We go shopping on Saturday.", "6️⃣", "Días de la semana"),
-    ("Sunday", "domingo", "I get up late on Sunday.", "7️⃣", "Días de la semana"),
+    ("Monday", "lunes", "I play basketball on Monday.", "🚌", "Días de la semana"),
+    ("Tuesday", "martes", "We have English on Tuesday.", "🌮", "Días de la semana"),
+    ("Wednesday", "miércoles", "He goes skating on Wednesday.", "🐫", "Días de la semana"),
+    ("Thursday", "jueves", "She reads a comic on Thursday.", "⚡", "Días de la semana"),
+    ("Friday", "viernes", "They watch TV on Friday.", "🎉", "Días de la semana"),
+    ("Saturday", "sábado", "We go shopping on Saturday.", "🏖️", "Días de la semana"),
+    ("Sunday", "domingo", "I get up late on Sunday.", "☀️", "Días de la semana"),
 ]
 
 words = [

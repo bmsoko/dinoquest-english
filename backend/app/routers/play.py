@@ -86,9 +86,21 @@ def get_round(
 
     if type == "memory":
         words = session.exec(select(Word).where(Word.unit_id.in_(active_unit_ids), Word.emoji != "")).all()
-        if len(words) < 4:
+        # The same word can exist in a regular unit AND an exam unit — keep one
+        # per text (and one per emoji, so card faces stay unambiguous)
+        seen_text: set[str] = set()
+        seen_emoji: set[str] = set()
+        unique_words = []
+        for w in words:
+            key = w.text.lower().strip()
+            if key in seen_text or w.emoji in seen_emoji:
+                continue
+            seen_text.add(key)
+            seen_emoji.add(w.emoji)
+            unique_words.append(w)
+        if len(unique_words) < 4:
             raise HTTPException(status_code=404, detail="No hay suficientes palabras")
-        picked = random.sample(words, min(count, len(words)))
+        picked = random.sample(unique_words, min(count, len(unique_words)))
         return {
             "type": "memory",
             "items": [

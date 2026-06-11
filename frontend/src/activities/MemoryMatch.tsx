@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { speak } from '../tts'
+import { sfx } from '../sounds'
 import { useLang } from '../i18n'
 import { type ActivityProps, ProgressDots, shuffle } from './shared'
 
@@ -27,6 +28,7 @@ export function MemoryMatch({ items, onAnswer, onFinish }: ActivityProps) {
 
   const flip = (card: Card) => {
     if (busy || flipped.includes(card.key) || matched.includes(card.matchKey)) return
+    sfx.flip()
     if (card.kind === 'word') speak(card.face)
     const next = [...flipped, card.key]
     setFlipped(next)

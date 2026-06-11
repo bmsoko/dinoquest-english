@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ItemResult } from '../types'
 import { speak } from '../tts'
+import { sfx } from '../sounds'
 import { useLang } from '../i18n'
-import { type ActivityProps, FeedbackBanner, ProgressDots, normalize, shuffle } from './shared'
+import { type ActivityProps, FeedbackBanner, ProgressDots, shuffle } from './shared'
 
 interface Chip {
   id: number
   word: string
+  punctuation?: boolean
 }
 
 export function Unscramble({ items, onAnswer, onFinish }: ActivityProps) {
@@ -16,40 +18,51 @@ export function Unscramble({ items, onAnswer, onFinish }: ActivityProps) {
   const [status, setStatus] = useState<'idle' | 'wrong1' | 'reveal' | 'correct'>('idle')
   const [attempts, setAttempts] = useState(0)
   const [results, setResults] = useState<ItemResult[]>([])
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const item = items[index]
   const sentence = item?.sentence ?? ''
-  const chips = useMemo<Chip[]>(() => {
+
+  // Words plus the final "?" / "!" as its own tappable chip
+  const expected = useMemo<Chip[]>(() => {
+    const punct = sentence.match(/[?!]$/)?.[0]
     const words = sentence.replace(/[.?!]$/, '').split(' ')
-    return shuffle(words.map((word, id) => ({ id, word })))
+    const chips: Chip[] = words.map((word, id) => ({ id, word }))
+    if (punct) chips.push({ id: words.length, word: punct, punctuation: true })
+    return chips
   }, [sentence])
+
+  const chips = useMemo(() => shuffle(expected), [expected])
 
   useEffect(() => {
     setPlaced([])
     setStatus('idle')
     setAttempts(0)
+    return () => {
+      if (advanceTimer.current) clearTimeout(advanceTimer.current)
+    }
   }, [index])
 
   if (!item) return null
 
   const available = chips.filter((c) => !placed.some((p) => p.id === c.id))
 
-  const advance = (correct: boolean) => {
-    const newResults = [...results, { word_id: item.word_id, correct }]
-    setResults(newResults)
-    setTimeout(() => {
-      if (index + 1 < items.length) setIndex(index + 1)
-      else onFinish(newResults)
-    }, 1500)
+  const goNext = (newResults: ItemResult[]) => {
+    if (advanceTimer.current) clearTimeout(advanceTimer.current)
+    if (index + 1 < items.length) setIndex(index + 1)
+    else onFinish(newResults)
   }
 
   const check = () => {
-    const built = placed.map((c) => c.word).join(' ')
-    if (normalize(built) === normalize(sentence)) {
+    const ok = placed.length === expected.length && placed.every((c, i) => c.word === expected[i].word)
+    if (ok) {
       setStatus('correct')
       speak(sentence)
       onAnswer(true)
-      advance(attempts === 0)
+      const newResults = [...results, { word_id: item.word_id, correct: attempts === 0 }]
+      setResults(newResults)
+      // Let the kid listen (and repeat it) before moving on
+      advanceTimer.current = setTimeout(() => goNext(newResults), 6000)
     } else {
       onAnswer(false)
       if (attempts === 0) {
@@ -58,7 +71,9 @@ export function Unscramble({ items, onAnswer, onFinish }: ActivityProps) {
         setPlaced([])
       } else {
         setStatus('reveal')
-        advance(false)
+        const newResults = [...results, { word_id: item.word_id, correct: false }]
+        setResults(newResults)
+        advanceTimer.current = setTimeout(() => goNext(newResults), 2500)
       }
     }
   }
@@ -78,8 +93,12 @@ export function Unscramble({ items, onAnswer, onFinish }: ActivityProps) {
           placed.map((chip) => (
             <button
               key={chip.id}
-              onClick={() => setPlaced(placed.filter((p) => p.id !== chip.id))}
-              className="btn-chunky animate-pop bg-jungle-pale border-jungle text-jungle-deep px-3 py-2 text-lg"
+              onClick={() => status === 'idle' || status === 'wrong1' ? setPlaced(placed.filter((p) => p.id !== chip.id)) : undefined}
+              className={`btn-chunky animate-pop px-3 py-2 text-lg ${
+                chip.punctuation
+                  ? 'bg-sun-pale border-sun text-sun-deep'
+                  : 'bg-jungle-pale border-jungle text-jungle-deep'
+              }`}
               style={{ borderWidth: '2px 2px 5px' }}
             >
               {chip.word}
@@ -92,8 +111,16 @@ export function Unscramble({ items, onAnswer, onFinish }: ActivityProps) {
         {available.map((chip) => (
           <button
             key={chip.id}
-            onClick={() => status !== 'correct' && status !== 'reveal' && setPlaced([...placed, chip])}
-            className="btn-chunky bg-white border-sand-deep text-ink px-3 py-2 text-lg"
+            onClick={() => {
+              if (status === 'correct' || status === 'reveal') return
+              sfx.click()
+              setPlaced([...placed, chip])
+            }}
+            className={`btn-chunky px-3 py-2 text-lg ${
+              chip.punctuation
+                ? 'bg-sun-pale border-sun text-sun-deep font-extrabold'
+                : 'bg-white border-sand-deep text-ink'
+            }`}
             style={{ borderWidth: '2px 2px 5px' }}
           >
             {chip.word}
@@ -101,13 +128,33 @@ export function Unscramble({ items, onAnswer, onFinish }: ActivityProps) {
         ))}
       </div>
 
-      <button
-        onClick={check}
-        disabled={available.length > 0 || status === 'correct' || status === 'reveal'}
-        className="btn-chunky bg-sun border-sun-deep text-white text-xl px-8 py-3 mx-auto"
-      >
-        {t.check} ✓
-      </button>
+      {status === 'correct' ? (
+        <div className="flex flex-wrap justify-center gap-3">
+          <button
+            onClick={() => speak(sentence)}
+            className="btn-chunky bg-sky border-sky-deep text-white text-lg px-6 py-3"
+          >
+            🔊 {t.repeat_it}
+          </button>
+          <button
+            onClick={() => goNext(results)}
+            className="btn-chunky bg-jungle border-jungle-deep text-white text-lg px-6 py-3"
+          >
+            {t.continue} →
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={check}
+          disabled={available.length > 0 || status === 'reveal'}
+          className="btn-chunky bg-sun border-sun-deep text-white text-xl px-8 py-3 mx-auto"
+        >
+          {t.check} ✓
+        </button>
+      )}
+      {status === 'correct' && (
+        <p className="text-center text-sm font-bold text-ink-soft animate-pop">🗣️ {t.say_it}</p>
+      )}
       <FeedbackBanner status={status} hint={item.hint} answer={sentence} />
     </div>
   )

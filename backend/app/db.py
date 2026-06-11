@@ -48,6 +48,23 @@ def init_db() -> None:
             session.add(Player(name="Jugador 1", avatar="🦖"))
             session.commit()
 
+    # Data fix: weekdays seeded with number emojis get themed, distinct icons
+    weekday_emojis = {
+        "monday": "🚌",
+        "tuesday": "🌮",
+        "wednesday": "🐫",
+        "thursday": "⚡",
+        "friday": "🎉",
+        "saturday": "🏖️",
+        "sunday": "☀️",
+    }
+    with engine.begin() as conn:
+        for day, emoji in weekday_emojis.items():
+            conn.execute(
+                text("UPDATE word SET emoji = :e WHERE lower(text) = :t AND emoji != :e"),
+                {"e": emoji, "t": day},
+            )
+
 
 def get_session():
     with Session(engine) as session:

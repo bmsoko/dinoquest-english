@@ -52,7 +52,9 @@ You receive a school notice (usually in Spanish) describing vocabulary and gramm
 
 1. words: every vocabulary item mentioned (split lists like "helmet, goggles" into separate words). \
 Phrases like "play basketball" count as one item. Include translation, a very simple example sentence, \
-one fitting emoji, and a Spanish category name.
+one fitting emoji, and a Spanish category name. Every word must get a UNIQUE emoji (no repeats across \
+the unit — they are used as memory-game cards). For days of the week use these icons: \
+Monday 🚌, Tuesday 🌮, Wednesday 🐫, Thursday ⚡, Friday 🎉, Saturday 🏖️, Sunday ☀️.
 
 2. exercises: a generous pool covering ALL four types:
 - listen_choose: the child hears the word and picks it among 4 written options. Options must be plausible \

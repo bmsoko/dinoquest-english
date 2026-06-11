@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { api } from '../api'
+import { sfx } from '../sounds'
 import { useLang } from '../i18n'
 import type {
   ActivityType,
@@ -88,11 +89,13 @@ export function Play() {
 
   const handleAnswer = (correct: boolean) => {
     if (correct) {
+      sfx.correct()
       setCombo((c) => c + 1)
       setMood('happy')
       setXpFly(10)
       setTimeout(() => setXpFly(null), 1000)
     } else {
+      sfx.wrong()
       setCombo(0)
       setMood('oops')
     }
@@ -107,6 +110,7 @@ export function Play() {
     setPlayer((p) => (p ? { ...p, ...data.player } : p))
     if (data.events.some((e) => e.type === 'egg_hatched')) await refreshPlayer()
     setPhase('roundEnd')
+    sfx.roundDone()
     if (results.every((r) => r.correct) && results.length > 0) {
       confetti({ particleCount: 70, spread: 70, origin: { y: 0.7 } })
     }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import confetti from 'canvas-confetti'
 import type { GameEvent, Species } from '../types'
+import { sfx } from '../sounds'
 import { useLang } from '../i18n'
 
 const RARITY_COLORS: Record<string, string> = {
@@ -28,7 +29,11 @@ export function RewardOverlay({
     setRevealed(false)
     if (!event) return
     if (event.type === 'level_up') {
+      sfx.levelUp()
       confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } })
+    }
+    if (event.type === 'dino_evolved') {
+      sfx.evolve()
     }
   }, [index, event])
 
@@ -57,7 +62,7 @@ export function RewardOverlay({
         {event.type === 'egg_hatched' && !revealed && (
           <>
             <h2 className="font-display text-2xl font-extrabold">{t.egg_hatched}</h2>
-            <button onClick={() => { setRevealed(true); confetti({ particleCount: 160, spread: 120, origin: { y: 0.5 } }) }} className="mt-4 text-8xl animate-crack inline-block cursor-pointer bg-transparent border-none">
+            <button onClick={() => { setRevealed(true); sfx.hatch(); confetti({ particleCount: 160, spread: 120, origin: { y: 0.5 } }) }} className="mt-4 text-8xl animate-crack inline-block cursor-pointer bg-transparent border-none">
               🥚
             </button>
             <p className="mt-2 font-bold text-ink-soft">{t.tap_to_open}</p>

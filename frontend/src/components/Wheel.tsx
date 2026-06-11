@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { ActivityType } from '../types'
+import { sfx } from '../sounds'
 import { useLang } from '../i18n'
 
 const SEGMENTS: { type: ActivityType; color: string; emoji: string }[] = [
@@ -31,6 +32,7 @@ export function Wheel({ onResult }: { onResult: (type: ActivityType) => void }) 
   const spin = () => {
     if (spinning) return
     setSpinning(true)
+    sfx.spin()
     const pickedIndex = Math.floor(Math.random() * SEGMENTS.length)
     // Land the picked segment's center under the top pointer
     const target =

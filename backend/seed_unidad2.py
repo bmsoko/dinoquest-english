@@ -24,8 +24,8 @@ W = [
     ("have breakfast", "desayunar", "We have breakfast together.", "🥣", "Rutinas diarias"),
     ("go to bed", "irse a dormir", "I go to bed at 9 pm.", "🌙", "Rutinas diarias"),
     ("watch TV", "mirar televisión", "They watch TV after dinner.", "📺", "Rutinas diarias"),
-    ("Monday", "lunes", "I play basketball on Monday.", "📅", "Días de la semana"),
-    ("Saturday", "sábado", "We go shopping on Saturday.", "🎈", "Días de la semana"),
+    ("Monday", "lunes", "I play basketball on Monday.", "🚌", "Días de la semana"),
+    ("Saturday", "sábado", "We go shopping on Saturday.", "🏖️", "Días de la semana"),
 ]
 
 words = [
