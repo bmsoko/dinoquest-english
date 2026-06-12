@@ -1,5 +1,6 @@
 import json
 
+import anthropic
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -40,6 +41,24 @@ def generate(req: GenerateRequest) -> GeneratedUnit:
         return generate_unit(req.prompt)
     except RuntimeError as e:
         raise HTTPException(status_code=502, detail=str(e))
+    except anthropic.AuthenticationError:
+        raise HTTPException(
+            status_code=502,
+            detail="La clave de IA (ANTHROPIC_API_KEY) no es válida. Revisala en Railway.",
+        )
+    except anthropic.BadRequestError as e:
+        msg = str(getattr(e, "message", "")) or str(e)
+        if "credit balance" in msg.lower():
+            raise HTTPException(
+                status_code=502,
+                detail="La cuenta de Anthropic no tiene saldo. Agregá créditos en console.anthropic.com → Billing.",
+            )
+        raise HTTPException(status_code=502, detail="La IA rechazó el pedido. Probá un texto más corto.")
+    except anthropic.APIError:
+        raise HTTPException(
+            status_code=502,
+            detail="No se pudo conectar con la IA en este momento. Probá de nuevo en un minuto.",
+        )
 
 
 @router.post("", dependencies=[Depends(check_pin)])
