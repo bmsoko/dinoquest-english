@@ -194,7 +194,7 @@ const LangContext = createContext<{ lang: Lang; t: Strings; toggle: () => void }
 })
 
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('lang') as Lang) || 'es')
+  const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('lang') as Lang) || 'en')
   const toggle = () => {
     const next = lang === 'es' ? 'en' : 'es'
     setLang(next)
