@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ItemResult } from '../types'
 import { speak } from '../tts'
 import { useLang } from '../i18n'
+import { WordIcon } from '../components/CalendarIcon'
 import { type ActivityProps, FeedbackBanner, ListenButtons, ProgressDots } from './shared'
 
 // Spelling: the kid types LETTERS ONLY — spaces and punctuation are handled
@@ -76,7 +77,9 @@ export function Dictation({ items, onAnswer, onFinish }: ActivityProps) {
     <div className="flex flex-col gap-5">
       <ProgressDots total={items.length} current={index} />
       <p className="text-center font-bold text-ink-soft">{t.dictation_help}</p>
-      <div className="text-center text-5xl">{item.emoji || '✏️'}</div>
+      <div className="text-center">
+        <WordIcon word={cleanTarget} emoji={item.emoji} fallback="✏️" />
+      </div>
       <ListenButtons text={target} />
 
       <div

@@ -2,12 +2,14 @@ import { useMemo, useState } from 'react'
 import { speak } from '../tts'
 import { sfx } from '../sounds'
 import { useLang } from '../i18n'
+import { WordIcon } from '../components/CalendarIcon'
 import { type ActivityProps, ProgressDots, shuffle } from './shared'
 
 interface Card {
   key: string
   word_id: number | null
   face: string
+  wordText: string
   matchKey: string
   kind: 'word' | 'emoji'
 }
@@ -16,8 +18,8 @@ export function MemoryMatch({ items, onAnswer, onFinish }: ActivityProps) {
   const { t } = useLang()
   const cards = useMemo<Card[]>(() => {
     const pairs = items.flatMap((item) => [
-      { key: `w-${item.word_id}`, word_id: item.word_id, face: item.text ?? '', matchKey: String(item.word_id), kind: 'word' as const },
-      { key: `e-${item.word_id}`, word_id: item.word_id, face: item.emoji ?? '❓', matchKey: String(item.word_id), kind: 'emoji' as const },
+      { key: `w-${item.word_id}`, word_id: item.word_id, face: item.text ?? '', wordText: item.text ?? '', matchKey: String(item.word_id), kind: 'word' as const },
+      { key: `e-${item.word_id}`, word_id: item.word_id, face: item.emoji ?? '❓', wordText: item.text ?? '', matchKey: String(item.word_id), kind: 'emoji' as const },
     ])
     return shuffle(pairs)
   }, [items])
@@ -76,9 +78,11 @@ export function MemoryMatch({ items, onAnswer, onFinish }: ActivityProps) {
               style={{ borderWidth: '2px 2px 6px' }}
             >
               {isUp ? (
-                <span className={card.kind === 'emoji' ? 'text-3xl' : 'font-display text-sm font-extrabold leading-tight'}>
-                  {card.face}
-                </span>
+                card.kind === 'emoji' ? (
+                  <WordIcon word={card.wordText} emoji={card.face} size={44} fallback="❓" />
+                ) : (
+                  <span className="font-display text-sm font-extrabold leading-tight">{card.face}</span>
+                )
               ) : (
                 <span className="text-2xl">🌿</span>
               )}

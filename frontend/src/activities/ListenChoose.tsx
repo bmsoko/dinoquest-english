@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ItemResult } from '../types'
 import { speak } from '../tts'
 import { useLang } from '../i18n'
+import { WordIcon } from '../components/CalendarIcon'
 import { type ActivityProps, FeedbackBanner, ListenButtons, ProgressDots, shuffle } from './shared'
 
 export function ListenChoose({ items, onAnswer, onFinish }: ActivityProps) {
@@ -55,7 +56,9 @@ export function ListenChoose({ items, onAnswer, onFinish }: ActivityProps) {
     <div className="flex flex-col gap-5">
       <ProgressDots total={items.length} current={index} />
       <p className="text-center font-bold text-ink-soft">{t.listen_choose_help}</p>
-      <div className="text-center text-5xl">{item.emoji || '👂'}</div>
+      <div className="text-center">
+        <WordIcon word={item.answer} emoji={item.emoji} fallback="👂" />
+      </div>
       <ListenButtons text={item.answer ?? ''} />
       <div className="grid grid-cols-2 gap-3">
         {options.map((option) => {
