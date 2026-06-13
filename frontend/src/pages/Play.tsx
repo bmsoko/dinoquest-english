@@ -16,6 +16,7 @@ import type {
 } from '../types'
 import { TopBar } from '../components/TopBar'
 import { EggBar } from '../components/EggBar'
+import { TimerDisplay, useSessionTimer } from '../components/SessionTimer'
 import { Companion, type CompanionMood } from '../components/Companion'
 import { Wheel, activityLabel } from '../components/Wheel'
 import { RewardOverlay } from '../components/RewardOverlay'
@@ -50,6 +51,11 @@ export function Play() {
   const [pendingEvents, setPendingEvents] = useState<GameEvent[]>([])
   const [roundsPlayed, setRoundsPlayed] = useState(0)
   const [xpFly, setXpFly] = useState<number | null>(null)
+  const [timeUp, setTimeUp] = useState(false)
+  const timer = useSessionTimer(() => {
+    sfx.roundDone()
+    setTimeUp(true)
+  })
 
   const refreshPlayer = useCallback(async () => {
     const [p, s] = await Promise.all([api.get('/player'), api.get('/player/species')])
@@ -127,7 +133,10 @@ export function Play() {
         </Link>
         <TopBar player={player} combo={combo} />
       </div>
-      {player && <EggBar progress={player.egg_progress} />}
+      <div className="flex items-center justify-between gap-3">
+        {player && <div className="flex-1"><EggBar progress={player.egg_progress} /></div>}
+        <TimerDisplay timer={timer} />
+      </div>
 
       <div className="relative flex-1">
         {xpFly && (
@@ -210,6 +219,35 @@ export function Play() {
             refreshPlayer()
           }}
         />
+      )}
+
+      {timeUp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-6">
+          <div className="card-toy animate-pop w-full max-w-sm p-8 text-center">
+            <div className="text-6xl mb-2">⏰</div>
+            <h2 className="font-display text-2xl font-extrabold text-sun-deep">{t.time_up_title}</h2>
+            <p className="mt-2 font-bold text-ink-soft">{t.time_up_msg}</p>
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  timer.restart()
+                  setTimeUp(false)
+                  setPhase('wheel')
+                }}
+                className="btn-chunky bg-jungle border-jungle-deep text-white text-xl px-8 py-3"
+              >
+                🎡 {t.new_session}
+              </button>
+              <Link
+                to="/"
+                className="btn-chunky bg-white border-sand-deep text-ink text-lg px-8 py-3"
+                style={{ borderWidth: '2px 2px 6px' }}
+              >
+                {t.stop_session}
+              </Link>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
