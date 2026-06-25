@@ -19,6 +19,7 @@ import { EggBar } from '../components/EggBar'
 import { TimerDisplay, useSessionTimer } from '../components/SessionTimer'
 import { Companion, type CompanionMood } from '../components/Companion'
 import { Wheel, activityLabel } from '../components/Wheel'
+import { ActivityPicker } from '../components/ActivityPicker'
 import { RewardOverlay } from '../components/RewardOverlay'
 import { ListenChoose } from '../activities/ListenChoose'
 import { Dictation } from '../activities/Dictation'
@@ -52,6 +53,8 @@ export function Play() {
   const [roundsPlayed, setRoundsPlayed] = useState(0)
   const [xpFly, setXpFly] = useState<number | null>(null)
   const [timeUp, setTimeUp] = useState(false)
+  // When set, the player chose a single activity (no wheel) — "one more" repeats it
+  const [focusedActivity, setFocusedActivity] = useState<ActivityType | null>(null)
   const timer = useSessionTimer(() => {
     sfx.roundDone()
     setTimeUp(true)
@@ -70,7 +73,7 @@ export function Play() {
   const companion: OwnedDino | null =
     player?.dinos.find((d) => d.id === player.companion_id) ?? null
 
-  const startRound = async (type: ActivityType) => {
+  const startRound = async (type: ActivityType, allowFallback = true) => {
     setPhase('loading')
     try {
       const res = await api.get('/play/round', { params: { type, count: 6, scope } })
@@ -78,16 +81,18 @@ export function Play() {
       setItems(res.data.items)
       setPhase('round')
     } catch {
-      // No exercises of this type (or no units) — try another type silently
-      const fallbacks: ActivityType[] = ['listen_choose', 'dictation', 'fill_in', 'unscramble', 'memory']
-      for (const fb of fallbacks.filter((f) => f !== type)) {
-        try {
-          const res = await api.get('/play/round', { params: { type: fb, count: 6, scope } })
-          setActivity(fb)
-          setItems(res.data.items)
-          setPhase('round')
-          return
-        } catch { /* keep trying */ }
+      // Wheel mode: silently try another type. Focused practice: don't switch.
+      if (allowFallback) {
+        const fallbacks: ActivityType[] = ['listen_choose', 'dictation', 'fill_in', 'unscramble', 'memory']
+        for (const fb of fallbacks.filter((f) => f !== type)) {
+          try {
+            const res = await api.get('/play/round', { params: { type: fb, count: 6, scope } })
+            setActivity(fb)
+            setItems(res.data.items)
+            setPhase('round')
+            return
+          } catch { /* keep trying */ }
+        }
       }
       setPhase('noContent')
     }
@@ -153,7 +158,8 @@ export function Play() {
               </span>
             )}
             <h1 className="font-display text-3xl font-extrabold">{t.next_mission}</h1>
-            <Wheel onResult={startRound} />
+            <Wheel onResult={(type) => { setFocusedActivity(null); startRound(type) }} />
+            <ActivityPicker onPick={(type) => { setFocusedActivity(type); startRound(type, false) }} />
           </div>
         )}
 
@@ -181,11 +187,20 @@ export function Play() {
             </p>
             <div className="mt-6 flex flex-col gap-3">
               <button
-                onClick={() => setPhase('wheel')}
+                onClick={() => (focusedActivity ? startRound(focusedActivity, false) : setPhase('wheel'))}
                 className="btn-chunky bg-jungle border-jungle-deep text-white text-xl px-8 py-3"
               >
-                🎡 {t.one_more}
+                {focusedActivity ? `🔁 ${activityLabel(focusedActivity, t)}` : `🎡 ${t.one_more}`}
               </button>
+              {focusedActivity && (
+                <button
+                  onClick={() => setPhase('wheel')}
+                  className="btn-chunky bg-white border-sand-deep text-ink text-lg px-8 py-3"
+                  style={{ borderWidth: '2px 2px 6px' }}
+                >
+                  🎡 {t.next_mission}
+                </button>
+              )}
               {roundsPlayed >= 2 && (
                 <Link to="/" className="btn-chunky bg-white border-sand-deep text-ink text-lg px-8 py-3" style={{ borderWidth: '2px 2px 6px' }}>
                   {t.finish}

@@ -3,7 +3,7 @@ import type { ActivityType } from '../types'
 import { sfx } from '../sounds'
 import { useLang } from '../i18n'
 
-const SEGMENTS: { type: ActivityType; color: string; emoji: string }[] = [
+export const SEGMENTS: { type: ActivityType; color: string; emoji: string }[] = [
   { type: 'listen_choose', color: '#4aa3df', emoji: '👂' },
   { type: 'dictation', color: '#1d9e75', emoji: '✏️' },
   { type: 'unscramble', color: '#f0704b', emoji: '🧩' },
