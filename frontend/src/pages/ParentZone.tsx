@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { useLang } from '../i18n'
-import type { GeneratedUnit, PlayerListItem, UnitSummary } from '../types'
+import type { GeneratedUnit, PlayerListItem, Theme, UnitSummary } from '../types'
 
 export function ParentZone() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [unlocked, setUnlocked] = useState(sessionStorage.getItem('parentUnlocked') === '1')
   const [gatePin, setGatePin] = useState('')
   const [gateError, setGateError] = useState(false)
@@ -19,19 +19,28 @@ export function ParentZone() {
   const [kind, setKind] = useState<'unit' | 'exam'>('unit')
 
   const [players, setPlayers] = useState<PlayerListItem[]>([])
-  const [edits, setEdits] = useState<Record<number, { name: string; pin: string }>>({})
+  const [themes, setThemes] = useState<Theme[]>([])
+  const [wordDrafts, setWordDrafts] = useState<Record<number, string>>({})
+  const [addingTo, setAddingTo] = useState<number | null>(null)
+  const [wordResult, setWordResult] = useState<{ unitId: number; added: string[]; skipped: string[] } | null>(null)
+  const [edits, setEdits] = useState<Record<number, { name: string; pin: string; theme: string }>>({})
 
   const loadUnits = () => api.get('/units').then((r) => setUnits(r.data))
   const loadPlayers = () =>
     api.get('/players').then((r) => {
       setPlayers(r.data)
-      setEdits(Object.fromEntries(r.data.map((p: PlayerListItem) => [p.id, { name: p.name, pin: '' }])))
+      setEdits(
+        Object.fromEntries(
+          r.data.map((p: PlayerListItem) => [p.id, { name: p.name, pin: '', theme: p.theme }]),
+        ),
+      )
     })
 
   useEffect(() => {
     if (!unlocked) return
     loadUnits()
     loadPlayers()
+    api.get('/player/themes').then((r) => setThemes(r.data))
   }, [unlocked])
 
   const tryUnlock = async () => {
@@ -51,11 +60,34 @@ export function ParentZone() {
     const e = edits[p.id]
     const payload: Record<string, string> = {}
     if (e.name !== p.name) payload.name = e.name
+    if (e.theme !== p.theme) payload.theme = e.theme
     if (clearPin) payload.pin = ''
     else if (e.pin) payload.pin = e.pin
     if (Object.keys(payload).length === 0) return
     await api.patch(`/players/${p.id}`, payload)
     loadPlayers()
+  }
+
+  const addWords = async (unit: UnitSummary) => {
+    const text = wordDrafts[unit.id]?.trim()
+    if (!text) return
+    setAddingTo(unit.id)
+    setWordResult(null)
+    try {
+      const singleWord = /spelling/i.test(unit.title)
+      const res = await api.post(`/units/${unit.id}/words`, {
+        words: text.split('\n'),
+        single_word: singleWord,
+      })
+      setWordResult({ unitId: unit.id, ...res.data })
+      setWordDrafts({ ...wordDrafts, [unit.id]: '' })
+      loadUnits()
+    } catch (e: unknown) {
+      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      setError(detail ?? 'Error agregando palabras')
+    } finally {
+      setAddingTo(null)
+    }
   }
 
   const deletePlayer = async (p: PlayerListItem) => {
@@ -246,6 +278,17 @@ export function ParentZone() {
               maxLength={20}
               className="w-36 rounded-lg border-2 border-sand-deep px-2 py-1 font-bold focus:border-jungle focus:outline-none"
             />
+            <select
+              value={edits[p.id]?.theme ?? p.theme}
+              onChange={(e) => setEdits({ ...edits, [p.id]: { ...edits[p.id], theme: e.target.value } })}
+              className="rounded-lg border-2 border-sand-deep px-2 py-1 text-sm font-bold focus:border-jungle focus:outline-none"
+            >
+              {themes.map((th) => (
+                <option key={th.id} value={th.id}>
+                  {th.emoji} {lang === 'es' ? th.name_es : th.name_en}
+                </option>
+              ))}
+            </select>
             <input
               value={edits[p.id]?.pin ?? ''}
               onChange={(e) =>
@@ -277,38 +320,74 @@ export function ParentZone() {
         {units.map((unit) => (
           <div
             key={unit.id}
-            className="flex items-center justify-between rounded-xl border-2 border-sand-deep bg-white px-4 py-3"
+            className="rounded-xl border-2 border-sand-deep bg-white px-4 py-3"
           >
-            <div>
-              <p className="font-bold">
-                {unit.kind === 'exam' && (
-                  <span className="mr-1.5 rounded-md bg-coral-pale px-1.5 py-0.5 text-xs font-extrabold text-coral-deep">
-                    🎯 EXAMEN
-                  </span>
-                )}
-                {unit.title}
-              </p>
-              <p className="text-xs text-ink-soft">
-                {unit.word_count} {t.pz_words} · {new Date(unit.created_at).toLocaleDateString()}
-              </p>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <p className="font-bold">
+                  {unit.kind === 'exam' && (
+                    <span className="mr-1.5 rounded-md bg-coral-pale px-1.5 py-0.5 text-xs font-extrabold text-coral-deep">
+                      🎯 EXAMEN
+                    </span>
+                  )}
+                  {unit.title}
+                </p>
+                <p className="text-xs text-ink-soft">
+                  {unit.word_count} {t.pz_words} · {new Date(unit.created_at).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-sm font-bold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={unit.active}
+                    onChange={() => toggleUnit(unit)}
+                    className="h-4 w-4 accent-jungle"
+                  />
+                  {t.pz_active}
+                </label>
+                <button
+                  onClick={() => deleteUnit(unit)}
+                  className="text-sm font-bold text-coral-deep underline"
+                >
+                  {t.pz_delete}
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1.5 text-sm font-bold cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={unit.active}
-                  onChange={() => toggleUnit(unit)}
-                  className="h-4 w-4 accent-jungle"
-                />
-                {t.pz_active}
-              </label>
+
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-start">
+              <textarea
+                value={wordDrafts[unit.id] ?? ''}
+                onChange={(e) => setWordDrafts({ ...wordDrafts, [unit.id]: e.target.value })}
+                placeholder={t.pz_words_placeholder}
+                rows={2}
+                className="flex-1 rounded-lg border-2 border-sand-deep px-3 py-2 text-sm focus:border-jungle focus:outline-none"
+              />
               <button
-                onClick={() => deleteUnit(unit)}
-                className="text-sm font-bold text-coral-deep underline"
+                onClick={() => addWords(unit)}
+                disabled={addingTo === unit.id || !(wordDrafts[unit.id] ?? '').trim()}
+                className="rounded-lg bg-sun px-3 py-2 text-sm font-bold text-white disabled:opacity-50 whitespace-nowrap"
               >
-                {t.pz_delete}
+                {addingTo === unit.id ? t.pz_adding : t.pz_add_words}
               </button>
             </div>
+            {wordResult?.unitId === unit.id && (
+              <p className="mt-2 text-sm font-bold">
+                <span className="text-jungle-deep">
+                  ✓ {t.pz_added} {wordResult.added.length}
+                </span>
+                {wordResult.added.length > 0 && (
+                  <span className="font-normal text-ink-soft"> ({wordResult.added.join(', ')})</span>
+                )}
+                {wordResult.skipped.length > 0 && (
+                  <span className="text-sun-deep">
+                    {' · '}
+                    {wordResult.skipped.length} {t.pz_already}
+                    <span className="font-normal text-ink-soft"> ({wordResult.skipped.join(', ')})</span>
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         ))}
       </div>

@@ -2,17 +2,19 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useLang } from '../i18n'
-import type { PlayerListItem } from '../types'
+import type { PlayerListItem, Theme } from '../types'
 
 const AVATARS = ['🦖', '🦕', '🐉', '🦄', '🐯', '🦁', '🐸', '🦊', '🐼', '🐵', '🦅', '🐙']
 
 export function Profiles() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const navigate = useNavigate()
   const [players, setPlayers] = useState<PlayerListItem[]>([])
+  const [themes, setThemes] = useState<Theme[]>([])
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [avatar, setAvatar] = useState(AVATARS[0])
+  const [theme, setTheme] = useState('dinos')
   const [pin, setPin] = useState('')
   const [askPinFor, setAskPinFor] = useState<PlayerListItem | null>(null)
   const [pinTry, setPinTry] = useState('')
@@ -20,6 +22,7 @@ export function Profiles() {
 
   useEffect(() => {
     api.get('/players').then((r) => setPlayers(r.data))
+    api.get('/player/themes').then((r) => setThemes(r.data))
   }, [])
 
   const enter = (id: number) => {
@@ -49,7 +52,7 @@ export function Profiles() {
 
   const create = async () => {
     if (!name.trim()) return
-    const res = await api.post('/players', { name: name.trim(), avatar, pin })
+    const res = await api.post('/players', { name: name.trim(), avatar, theme, pin })
     enter(res.data.id)
   }
 
@@ -109,6 +112,23 @@ export function Profiles() {
                 }`}
               >
                 {a}
+              </button>
+            ))}
+          </div>
+          <p className="font-bold text-sm text-ink-soft">{t.pick_theme}</p>
+          <div className="grid grid-cols-3 gap-2">
+            {themes.map((th) => (
+              <button
+                key={th.id}
+                onClick={() => setTheme(th.id)}
+                className={`flex flex-col items-center gap-0.5 rounded-xl p-2 transition-transform ${
+                  theme === th.id ? 'bg-jungle-pale ring-3 ring-jungle scale-105' : 'bg-sand'
+                }`}
+              >
+                <span className="text-3xl">{th.emoji}</span>
+                <span className="font-display text-xs font-extrabold">
+                  {lang === 'es' ? th.name_es : th.name_en}
+                </span>
               </button>
             ))}
           </div>

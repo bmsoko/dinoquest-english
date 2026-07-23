@@ -12,7 +12,7 @@ const RARITY_COLORS: Record<string, string> = {
 }
 
 export function DinoDex() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [player, setPlayer] = useState<PlayerState | null>(null)
   const [species, setSpecies] = useState<Species[]>([])
 
@@ -37,7 +37,9 @@ export function DinoDex() {
         <Link to="/" className="btn-chunky bg-white border-sand-deep px-3 py-1.5 text-lg" style={{ borderWidth: '2px 2px 5px' }}>
           ←
         </Link>
-        <h1 className="font-display text-3xl font-extrabold">📖 {t.dinodex}</h1>
+        <h1 className="font-display text-3xl font-extrabold">
+          {player ? `${player.theme_emoji} ${lang === 'es' ? player.collection_es : player.collection_en}` : `📖 ${t.dinodex}`}
+        </h1>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">

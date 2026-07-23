@@ -36,6 +36,7 @@ class Player(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     avatar: str = "🦖"
+    theme: str = "dinos"  # collectible set: dinos | fairies | cars | planes | sports | dolls
     pin: Optional[str] = None  # kid-proofing only, not real security
     xp: int = 0
     level: int = 1

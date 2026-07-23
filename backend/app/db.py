@@ -31,11 +31,13 @@ def init_db() -> None:
             ]:
                 conn.execute(text(f"DROP TABLE {table}"))
 
-    if "player" in tables and "pin" not in [
-        c["name"] for c in inspector.get_columns("player")
-    ]:
+    if "player" in tables:
+        player_cols = [c["name"] for c in inspector.get_columns("player")]
         with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE player ADD COLUMN pin VARCHAR"))
+            if "pin" not in player_cols:
+                conn.execute(text("ALTER TABLE player ADD COLUMN pin VARCHAR"))
+            if "theme" not in player_cols:
+                conn.execute(text("ALTER TABLE player ADD COLUMN theme VARCHAR DEFAULT 'dinos'"))
 
     SQLModel.metadata.create_all(engine)
 

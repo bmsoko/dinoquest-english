@@ -1,4 +1,11 @@
-export type ActivityType = 'listen_choose' | 'dictation' | 'unscramble' | 'fill_in' | 'memory'
+export type ActivityType =
+  | 'listen_choose'
+  | 'dictation'
+  | 'unscramble'
+  | 'fill_in'
+  | 'memory'
+  | 'anagram'
+  | 'missing_letter'
 
 export interface ExerciseItem {
   exercise_id?: number
@@ -60,6 +67,10 @@ export interface PlayerState extends PlayerSummary {
   id: number
   name: string
   avatar: string
+  theme: string
+  theme_emoji: string
+  collection_es: string
+  collection_en: string
   weekly_xp: number
   last_played: string | null
   companion_id: number | null
@@ -70,12 +81,20 @@ export interface PlayerListItem {
   id: number
   name: string
   avatar: string
+  theme: string
   has_pin: boolean
   level: number
   xp: number
   weekly_xp: number
   streak: number
   dino_count: number
+}
+
+export interface Theme {
+  id: string
+  name_es: string
+  name_en: string
+  emoji: string
 }
 
 export interface SpeciesStage {

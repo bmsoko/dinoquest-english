@@ -9,6 +9,8 @@ export const SEGMENTS: { type: ActivityType; color: string; emoji: string }[] = 
   { type: 'unscramble', color: '#f0704b', emoji: '🧩' },
   { type: 'fill_in', color: '#f5a623', emoji: '📝' },
   { type: 'memory', color: '#9b6ddb', emoji: '🃏' },
+  { type: 'anagram', color: '#0f6e56', emoji: '🔤' },
+  { type: 'missing_letter', color: '#c14d2c', emoji: '🔡' },
 ]
 
 export function activityLabel(type: ActivityType, t: ReturnType<typeof useLang>['t']): string {
@@ -18,6 +20,8 @@ export function activityLabel(type: ActivityType, t: ReturnType<typeof useLang>[
     case 'unscramble': return t.unscramble_title
     case 'fill_in': return t.fill_in_title
     case 'memory': return t.memory_title
+    case 'anagram': return t.anagram_title
+    case 'missing_letter': return t.missing_title
   }
 }
 

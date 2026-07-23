@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from ..db import get_session
 from ..game import week_start_of, xp_into_level
 from ..models import OwnedDino, Player, WordStat
-from ..species import SPECIES, SPECIES_BY_ID
+from ..themes import ALL_SPECIES_BY_ID, THEMES, theme_or_default
 from .units import check_pin
 
 router = APIRouter(prefix="/player", tags=["player"])
@@ -33,7 +33,7 @@ def current_weekly_xp(player: Player) -> int:
 
 
 def dino_view(dino: OwnedDino) -> dict:
-    species = SPECIES_BY_ID.get(dino.species_id)
+    species = ALL_SPECIES_BY_ID.get(dino.species_id)
     stage_info = species["stages"][dino.stage - 1] if species else {"name": "?", "emoji": "❓"}
     return {
         "id": dino.id,
@@ -54,10 +54,15 @@ def get_state(
     player = get_player(session, player_id)
     dinos = session.exec(select(OwnedDino).where(OwnedDino.player_id == player.id)).all()
     progress, needed = xp_into_level(player.xp)
+    theme = theme_or_default(player.theme)
     return {
         "id": player.id,
         "name": player.name,
         "avatar": player.avatar,
+        "theme": player.theme,
+        "theme_emoji": theme["emoji"],
+        "collection_es": theme["collection_es"],
+        "collection_en": theme["collection_en"],
         "xp": player.xp,
         "level": player.level,
         "level_progress": progress,
@@ -72,8 +77,19 @@ def get_state(
 
 
 @router.get("/species")
-def get_species():
-    return SPECIES
+def get_species(
+    player_id: int = Depends(player_id_header), session: Session = Depends(get_session)
+):
+    player = get_player(session, player_id)
+    return theme_or_default(player.theme)["species"]
+
+
+@router.get("/themes")
+def list_themes():
+    return [
+        {"id": t["id"], "name_es": t["name_es"], "name_en": t["name_en"], "emoji": t["emoji"]}
+        for t in THEMES
+    ]
 
 
 class CompanionRequest(BaseModel):
@@ -107,6 +123,7 @@ def list_players(session: Session = Depends(get_session)):
                 "id": p.id,
                 "name": p.name,
                 "avatar": p.avatar,
+                "theme": p.theme,
                 "has_pin": bool(p.pin),
                 "level": p.level,
                 "xp": p.xp,
@@ -121,6 +138,7 @@ def list_players(session: Session = Depends(get_session)):
 class CreatePlayerRequest(BaseModel):
     name: str
     avatar: str = "🦖"
+    theme: str = "dinos"
     pin: str = ""
 
 
@@ -129,21 +147,31 @@ def clean_pin(pin: str) -> str | None:
     return pin or None
 
 
+def clean_theme(theme: str) -> str:
+    return theme_or_default(theme)["id"]
+
+
 @players_router.post("")
 def create_player(req: CreatePlayerRequest, session: Session = Depends(get_session)):
     name = req.name.strip()[:20]
     if not name:
         raise HTTPException(status_code=400, detail="El nombre está vacío")
-    player = Player(name=name, avatar=req.avatar[:8] or "🦖", pin=clean_pin(req.pin))
+    player = Player(
+        name=name,
+        avatar=req.avatar[:8] or "🦖",
+        theme=clean_theme(req.theme),
+        pin=clean_pin(req.pin),
+    )
     session.add(player)
     session.commit()
     session.refresh(player)
-    return {"id": player.id, "name": player.name, "avatar": player.avatar}
+    return {"id": player.id, "name": player.name, "avatar": player.avatar, "theme": player.theme}
 
 
 class UpdatePlayerRequest(BaseModel):
     name: str | None = None
     avatar: str | None = None
+    theme: str | None = None
     pin: str | None = None  # "" clears the PIN
 
 
@@ -157,11 +185,13 @@ def update_player(pid: int, req: UpdatePlayerRequest, session: Session = Depends
         player.name = name
     if req.avatar is not None and req.avatar:
         player.avatar = req.avatar[:8]
+    if req.theme is not None and req.theme:
+        player.theme = clean_theme(req.theme)
     if req.pin is not None:
         player.pin = clean_pin(req.pin)
     session.add(player)
     session.commit()
-    return {"id": player.id, "name": player.name, "avatar": player.avatar, "has_pin": bool(player.pin)}
+    return {"id": player.id, "name": player.name, "avatar": player.avatar, "theme": player.theme, "has_pin": bool(player.pin)}
 
 
 class VerifyPinRequest(BaseModel):

@@ -3,7 +3,8 @@
 import random
 from datetime import date, timedelta
 
-from .species import RARITY_WEIGHTS, SPECIES, STAGE_THRESHOLDS
+from .species import RARITY_WEIGHTS, STAGE_THRESHOLDS
+from .themes import theme_species
 
 XP_PER_CORRECT = 10
 EGG_POINTS_PER_CORRECT = 4
@@ -27,11 +28,13 @@ def xp_into_level(xp: int) -> tuple[int, int]:
     return remaining, 100 + 50 * (level - 1)
 
 
-def roll_species() -> dict:
+def roll_species(theme_id: str = "dinos") -> dict:
+    pool = theme_species(theme_id)
     rarity = random.choices(
         list(RARITY_WEIGHTS), weights=list(RARITY_WEIGHTS.values())
     )[0]
-    return random.choice([s for s in SPECIES if s["rarity"] == rarity])
+    candidates = [s for s in pool if s["rarity"] == rarity] or pool
+    return random.choice(candidates)
 
 
 def stage_for_companion_xp(xp: int) -> int:

@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 
 from ..config import settings
 from ..db import get_session
+from ..exercises import build_word_exercises, normalize
 from ..generation import GeneratedUnit, generate_unit
 from ..models import ExerciseItem, Unit, Word, WordStat
 
@@ -59,6 +60,64 @@ def generate(req: GenerateRequest) -> GeneratedUnit:
             status_code=502,
             detail="No se pudo conectar con la IA en este momento. Probá de nuevo en un minuto.",
         )
+
+
+class AddWordsRequest(BaseModel):
+    words: list[str]
+    single_word: bool = False  # spelling test: collapse "scare crow" -> "scarecrow"
+
+
+@router.post("/{unit_id}/words", dependencies=[Depends(check_pin)])
+def add_words(unit_id: int, req: AddWordsRequest, session: Session = Depends(get_session)):
+    """Append vocabulary to a unit, skipping anything already there."""
+    unit = session.get(Unit, unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unidad no encontrada")
+
+    existing = session.exec(select(Word).where(Word.unit_id == unit_id)).all()
+    existing_keys = {normalize(w.text) for w in existing}
+    pool = [w.text for w in existing]
+
+    # Accept a pasted blob: split on newlines and commas
+    incoming: list[str] = []
+    for raw in req.words:
+        for part in raw.replace(",", "\n").split("\n"):
+            cleaned = " ".join(part.split())
+            if cleaned:
+                incoming.append(cleaned)
+
+    added: list[str] = []
+    skipped: list[str] = []
+    for raw_word in incoming:
+        word_text = raw_word.replace(" ", "") if req.single_word else raw_word
+        key = normalize(word_text)
+        if not key:
+            continue
+        if key in existing_keys:
+            skipped.append(word_text)
+            continue
+        existing_keys.add(key)
+        added.append(word_text)
+
+    full_pool = pool + added
+    for word_text in added:
+        word = Word(unit_id=unit_id, text=word_text)
+        session.add(word)
+        session.commit()
+        session.refresh(word)
+        for ex in build_word_exercises(word_text, [p for p in full_pool if p != word_text]):
+            payload = {k: v for k, v in ex.items() if k != "type"}
+            session.add(
+                ExerciseItem(
+                    unit_id=unit_id,
+                    word_id=word.id,
+                    type=ex["type"],
+                    payload=json.dumps(payload, ensure_ascii=False),
+                    difficulty=1,
+                )
+            )
+    session.commit()
+    return {"added": added, "skipped": skipped}
 
 
 @router.post("", dependencies=[Depends(check_pin)])

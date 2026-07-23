@@ -54,7 +54,7 @@ export function Home() {
       )}
 
       <div className="text-center">
-        <div className="text-7xl animate-bounce-big inline-block">{companion?.emoji ?? '🦖'}</div>
+        <div className="text-7xl animate-bounce-big inline-block">{companion?.emoji ?? player?.theme_emoji ?? '🦖'}</div>
         <h1 className="mt-2 font-display text-5xl font-extrabold tracking-tight">
           Dino<span className="text-jungle">Quest</span>
         </h1>
@@ -116,7 +116,8 @@ export function Home() {
           to="/dinodex"
           className="btn-chunky bg-berry border-berry-deep text-white text-xl px-8 py-3"
         >
-          📖 {t.dinodex}
+          {player ? player.theme_emoji : '📖'}{' '}
+          {player ? (lang === 'es' ? player.collection_es : player.collection_en) : t.dinodex}
         </Link>
       </div>
 

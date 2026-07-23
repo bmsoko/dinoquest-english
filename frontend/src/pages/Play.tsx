@@ -26,6 +26,8 @@ import { Dictation } from '../activities/Dictation'
 import { Unscramble } from '../activities/Unscramble'
 import { FillIn } from '../activities/FillIn'
 import { MemoryMatch } from '../activities/MemoryMatch'
+import { Anagram } from '../activities/Anagram'
+import { MissingLetter } from '../activities/MissingLetter'
 
 type Phase = 'wheel' | 'loading' | 'round' | 'roundEnd' | 'noContent'
 
@@ -35,6 +37,8 @@ const ACTIVITY_COMPONENTS: Record<ActivityType, typeof ListenChoose> = {
   unscramble: Unscramble,
   fill_in: FillIn,
   memory: MemoryMatch,
+  anagram: Anagram,
+  missing_letter: MissingLetter,
 }
 
 export function Play() {
@@ -83,7 +87,7 @@ export function Play() {
     } catch {
       // Wheel mode: silently try another type. Focused practice: don't switch.
       if (allowFallback) {
-        const fallbacks: ActivityType[] = ['listen_choose', 'dictation', 'fill_in', 'unscramble', 'memory']
+        const fallbacks: ActivityType[] = ['listen_choose', 'dictation', 'fill_in', 'unscramble', 'memory', 'anagram', 'missing_letter']
         for (const fb of fallbacks.filter((f) => f !== type)) {
           try {
             const res = await api.get('/play/round', { params: { type: fb, count: 6, scope } })

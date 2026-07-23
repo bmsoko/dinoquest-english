@@ -18,7 +18,7 @@ from ..game import (
     xp_into_level,
 )
 from ..models import ExerciseItem, OwnedDino, Player, Unit, Word, WordStat
-from ..species import SPECIES_BY_ID
+from ..themes import ALL_SPECIES_BY_ID
 
 router = APIRouter(prefix="/play", tags=["play"])
 
@@ -207,7 +207,7 @@ def post_result(
     player.egg_progress += n_correct * EGG_POINTS_PER_CORRECT
     while player.egg_progress >= 100:
         player.egg_progress -= 100
-        species = roll_species()
+        species = roll_species(player.theme)
         dino = OwnedDino(player_id=player.id, species_id=species["id"])
         session.add(dino)
         session.commit()
@@ -229,7 +229,7 @@ def post_result(
             companion.xp += xp_earned
             companion.stage = stage_for_companion_xp(companion.xp)
             if companion.stage > old_stage:
-                species = SPECIES_BY_ID.get(companion.species_id, {})
+                species = ALL_SPECIES_BY_ID.get(companion.species_id, {})
                 stage_info = species.get("stages", [{}] * 3)[companion.stage - 1]
                 events.append(
                     {
