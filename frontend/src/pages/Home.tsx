@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useLang } from '../i18n'
-import type { ExamStatus, PlayerListItem, PlayerState } from '../types'
+import type { ExamStatus, PlayerListItem, PlayerState, Theme } from '../types'
 import { EggBar } from '../components/EggBar'
+import { CustomizeModal } from '../components/CustomizeModal'
 
 export function Home() {
   const { t, lang, toggle } = useLang()
@@ -11,6 +12,10 @@ export function Home() {
   const [player, setPlayer] = useState<PlayerState | null>(null)
   const [exam, setExam] = useState<ExamStatus | null>(null)
   const [players, setPlayers] = useState<PlayerListItem[]>([])
+  const [themes, setThemes] = useState<Theme[]>([])
+  const [customizing, setCustomizing] = useState(false)
+
+  const loadPlayer = () => api.get('/player').then((r) => setPlayer(r.data))
 
   useEffect(() => {
     if (!localStorage.getItem('playerId')) {
@@ -27,6 +32,7 @@ export function Home() {
       })
     api.get('/play/exam').then((r) => setExam(r.data))
     api.get('/players').then((r) => setPlayers(r.data))
+    api.get('/player/themes').then((r) => setThemes(r.data))
   }, [navigate])
 
   const companion = player?.dinos.find((d) => d.id === player.companion_id)
@@ -42,15 +48,37 @@ export function Home() {
       </button>
 
       {player && (
-        <Link
-          to="/profiles"
-          className="absolute left-4 top-4 btn-chunky flex items-center gap-2 bg-white border-sand-deep px-3 py-1"
-          style={{ borderWidth: '2px 2px 5px' }}
-          title={t.change_player}
-        >
-          <span className="text-2xl">{player.avatar}</span>
-          <span className="font-display font-extrabold">{player.name}</span>
-        </Link>
+        <div className="absolute left-4 top-4 flex items-center gap-2">
+          <Link
+            to="/profiles"
+            className="btn-chunky flex items-center gap-2 bg-white border-sand-deep px-3 py-1"
+            style={{ borderWidth: '2px 2px 5px' }}
+            title={t.change_player}
+          >
+            <span className="text-2xl">{player.avatar}</span>
+            <span className="font-display font-extrabold">{player.name}</span>
+          </Link>
+          <button
+            onClick={() => setCustomizing(true)}
+            className="btn-chunky bg-berry border-berry-deep px-3 py-1 text-lg text-white"
+            style={{ borderWidth: '2px 2px 5px', minHeight: 0 }}
+            title={t.customize}
+          >
+            ✨
+          </button>
+        </div>
+      )}
+
+      {customizing && player && (
+        <CustomizeModal
+          player={player}
+          themes={themes}
+          onClose={() => setCustomizing(false)}
+          onSaved={() => {
+            setCustomizing(false)
+            loadPlayer()
+          }}
+        />
       )}
 
       <div className="text-center">
@@ -97,6 +125,13 @@ export function Home() {
         className="btn-hero btn-chunky flex items-center justify-center gap-2 bg-jungle border-jungle-deep text-white text-4xl px-16 py-7 text-center w-full max-w-xs shadow-[0_14px_28px_-10px_rgba(13,107,82,0.7)]"
       >
         ▶ {t.play}
+      </Link>
+
+      <Link
+        to="/play?mode=recent"
+        className="btn-chunky flex flex-col items-center bg-sky border-sky-deep text-white w-full max-w-xs px-8 py-3 text-center"
+      >
+        <span className="text-2xl">🆕 {t.latest_words}</span>
       </Link>
 
       {exam?.exists && (

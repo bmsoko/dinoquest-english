@@ -44,7 +44,8 @@ const ACTIVITY_COMPONENTS: Record<ActivityType, typeof ListenChoose> = {
 export function Play() {
   const { t } = useLang()
   const [searchParams] = useSearchParams()
-  const scope = searchParams.get('mode') === 'exam' ? 'exam' : 'all'
+  const mode = searchParams.get('mode')
+  const scope = mode === 'exam' ? 'exam' : mode === 'recent' ? 'recent' : 'all'
   const [player, setPlayer] = useState<PlayerState | null>(null)
   const [species, setSpecies] = useState<Species[]>([])
   const [phase, setPhase] = useState<Phase>('wheel')
@@ -73,6 +74,14 @@ export function Play() {
   useEffect(() => {
     refreshPlayer()
   }, [refreshPlayer])
+
+  // "Latest added" goes straight into spelling practice on the newest words
+  useEffect(() => {
+    if (mode !== 'recent') return
+    setFocusedActivity('dictation')
+    startRound('dictation', false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode])
 
   const companion: OwnedDino | null =
     player?.dinos.find((d) => d.id === player.companion_id) ?? null
@@ -159,6 +168,11 @@ export function Play() {
             {scope === 'exam' && (
               <span className="animate-pop rounded-2xl bg-coral-pale border-2 border-coral px-4 py-1 font-display font-extrabold text-coral-deep">
                 🎯 {t.exam_mode}
+              </span>
+            )}
+            {scope === 'recent' && (
+              <span className="animate-pop rounded-2xl border-2 border-sky bg-sky/15 px-4 py-1 font-display font-extrabold text-sky-deep">
+                🆕 {t.latest_mode}
               </span>
             )}
             <h1 className="font-display text-3xl font-extrabold">{t.next_mission}</h1>

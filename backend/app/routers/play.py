@@ -26,6 +26,9 @@ router = APIRouter(prefix="/play", tags=["play"])
 # Unseen words use the box-1 weight so new vocabulary shows up early.
 BOX_WEIGHTS = {1: 8, 2: 4, 3: 2, 4: 1}
 
+# How many of the newest words the "latest added" mode practices
+RECENT_WORDS = 24
+
 
 def get_player(session: Session, player_id: int) -> Player:
     player = session.get(Player, player_id)
@@ -84,8 +87,23 @@ def get_round(
     if not active_unit_ids:
         raise HTTPException(status_code=404, detail="No hay unidades activas")
 
+    # "Latest added": restrict to the most recently added vocabulary (ids ascend)
+    recent_word_ids: set[int] | None = None
+    if scope == "recent":
+        recent = session.exec(
+            select(Word)
+            .where(Word.unit_id.in_(active_unit_ids))
+            .order_by(Word.id.desc())
+            .limit(RECENT_WORDS)
+        ).all()
+        recent_word_ids = {w.id for w in recent}
+        if not recent_word_ids:
+            raise HTTPException(status_code=404, detail="No hay palabras nuevas")
+
     if type == "memory":
         words = session.exec(select(Word).where(Word.unit_id.in_(active_unit_ids), Word.emoji != "")).all()
+        if recent_word_ids is not None:
+            words = [w for w in words if w.id in recent_word_ids]
         # The same word can exist in a regular unit AND an exam unit — keep one
         # per text (and one per emoji, so card faces stay unambiguous)
         seen_text: set[str] = set()
@@ -114,6 +132,8 @@ def get_round(
             ExerciseItem.unit_id.in_(active_unit_ids), ExerciseItem.type == type
         )
     ).all()
+    if recent_word_ids is not None:
+        items = [i for i in items if i.word_id in recent_word_ids]
     if not items:
         raise HTTPException(status_code=404, detail=f"No hay ejercicios de tipo {type}")
 

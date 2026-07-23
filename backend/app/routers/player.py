@@ -92,6 +92,36 @@ def list_themes():
     ]
 
 
+class ProfileRequest(BaseModel):
+    avatar: str | None = None
+    theme: str | None = None
+
+
+@router.post("/profile")
+def update_own_profile(
+    req: ProfileRequest,
+    player_id: int = Depends(player_id_header),
+    session: Session = Depends(get_session),
+):
+    """Kid-facing avatar / prize-set change (no parent PIN). Changing the prize
+    set only affects future eggs — characters already earned are kept."""
+    player = get_player(session, player_id)
+    if req.avatar:
+        player.avatar = req.avatar[:8]
+    if req.theme:
+        player.theme = clean_theme(req.theme)
+    session.add(player)
+    session.commit()
+    theme = theme_or_default(player.theme)
+    return {
+        "avatar": player.avatar,
+        "theme": player.theme,
+        "theme_emoji": theme["emoji"],
+        "collection_es": theme["collection_es"],
+        "collection_en": theme["collection_en"],
+    }
+
+
 class CompanionRequest(BaseModel):
     dino_id: int
 
