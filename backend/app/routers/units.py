@@ -121,6 +121,25 @@ def add_words(unit_id: int, req: AddWordsRequest, session: Session = Depends(get
     return {"added": added, "skipped": skipped}
 
 
+class WordEmojisRequest(BaseModel):
+    emojis: dict[str, str]  # word -> emoji
+
+
+@router.post("/{unit_id}/word-emojis", dependencies=[Depends(check_pin)])
+def set_word_emojis(unit_id: int, req: WordEmojisRequest, session: Session = Depends(get_session)):
+    """Attach picture hints to words (words added via the text box have none)."""
+    wanted = {normalize(k): v for k, v in req.emojis.items()}
+    updated: list[str] = []
+    for word in session.exec(select(Word).where(Word.unit_id == unit_id)).all():
+        emoji = wanted.get(normalize(word.text))
+        if emoji and word.emoji != emoji:
+            word.emoji = emoji
+            session.add(word)
+            updated.append(f"{word.text} {emoji}")
+    session.commit()
+    return {"updated": updated}
+
+
 class TouchWordsRequest(BaseModel):
     words: list[str]
 

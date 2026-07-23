@@ -8,19 +8,32 @@ export interface ActivityProps {
   onFinish: (results: ItemResult[]) => void
 }
 
-export function ListenButtons({ text, autoFocus = false }: { text: string; autoFocus?: boolean }) {
+export function ListenButtons({
+  text,
+  autoFocus = false,
+  onAfterSpeak,
+}: {
+  text: string
+  autoFocus?: boolean
+  /** Hand focus back to the typing field so the kid can keep spelling. */
+  onAfterSpeak?: () => void
+}) {
   const { t } = useLang()
+  const play = (slow: boolean) => {
+    speak(text, slow)
+    onAfterSpeak?.()
+  }
   return (
     <div className="flex justify-center gap-3">
       <button
         autoFocus={autoFocus}
-        onClick={() => speak(text)}
+        onClick={() => play(false)}
         className="btn-chunky bg-sky border-sky-deep text-white text-lg px-6 py-3"
       >
         🔊 {t.listen}
       </button>
       <button
-        onClick={() => speak(text, true)}
+        onClick={() => play(true)}
         className="btn-chunky bg-white border-sand-deep text-ink text-lg px-5 py-3"
         style={{ borderWidth: '2px 2px 6px' }}
       >

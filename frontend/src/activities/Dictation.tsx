@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ItemResult } from '../types'
 import { speak } from '../tts'
 import { useLang } from '../i18n'
-import { WordIcon } from '../components/CalendarIcon'
+import { WordIcon, weekdayAbbr } from '../components/CalendarIcon'
 import { type ActivityProps, FeedbackBanner, ListenButtons, ProgressDots } from './shared'
 
 // Spelling: the kid types LETTERS ONLY — spaces and punctuation are handled
@@ -26,6 +26,8 @@ export function Dictation({ items, onAnswer, onFinish }: ActivityProps) {
     [cleanTarget],
   )
   const isSentence = cleanTarget.includes(' ')
+  // A weekday renders as a calendar chip; anything else needs a real emoji
+  const hasIcon = !isSentence && (!!weekdayAbbr(cleanTarget) || !!item?.emoji)
 
   useEffect(() => {
     if (target) speak(target)
@@ -80,15 +82,15 @@ export function Dictation({ items, onAnswer, onFinish }: ActivityProps) {
       <p className="text-center font-bold text-ink-soft">
         {isSentence ? t.sentence_help : t.dictation_help}
       </p>
-      {/* The icon is a picture-hint for the word being spelled. A sentence has
-          nothing single to illustrate, so show nothing rather than a generic
-          emoji that looks like a clue. */}
-      {!isSentence && (
+      {/* The icon is a picture-hint for the word being spelled. Only show it
+          when it actually depicts the word — never a generic placeholder that
+          looks like a clue but isn't. */}
+      {hasIcon && (
         <div className="text-center">
-          <WordIcon word={cleanTarget} emoji={item.emoji} fallback="✏️" />
+          <WordIcon word={cleanTarget} emoji={item.emoji} />
         </div>
       )}
-      <ListenButtons text={target} />
+      <ListenButtons text={target} onAfterSpeak={() => inputRef.current?.focus()} />
 
       <div
         className="flex flex-wrap justify-center gap-1.5 cursor-text min-h-12"
