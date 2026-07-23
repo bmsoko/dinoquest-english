@@ -1,6 +1,6 @@
 import json
 import random
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
@@ -26,8 +26,8 @@ router = APIRouter(prefix="/play", tags=["play"])
 # Unseen words use the box-1 weight so new vocabulary shows up early.
 BOX_WEIGHTS = {1: 8, 2: 4, 3: 2, 4: 1}
 
-# How many of the newest words the "latest added" mode practices
-RECENT_WORDS = 24
+# "Latest words" practices vocabulary added within this window
+RECENT_DAYS = 14
 
 
 def get_player(session: Session, player_id: int) -> Player:
@@ -90,11 +90,13 @@ def get_round(
     # "Latest added": restrict to the most recently added vocabulary (ids ascend)
     recent_word_ids: set[int] | None = None
     if scope == "recent":
+        cutoff = datetime.utcnow() - timedelta(days=RECENT_DAYS)
         recent = session.exec(
-            select(Word)
-            .where(Word.unit_id.in_(active_unit_ids))
-            .order_by(Word.id.desc())
-            .limit(RECENT_WORDS)
+            select(Word).where(
+                Word.unit_id.in_(active_unit_ids),
+                Word.created_at != None,  # noqa: E711
+                Word.created_at >= cutoff,
+            )
         ).all()
         recent_word_ids = {w.id for w in recent}
         if not recent_word_ids:

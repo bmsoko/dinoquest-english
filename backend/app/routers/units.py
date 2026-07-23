@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 import anthropic
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -118,6 +119,24 @@ def add_words(unit_id: int, req: AddWordsRequest, session: Session = Depends(get
             )
     session.commit()
     return {"added": added, "skipped": skipped}
+
+
+class TouchWordsRequest(BaseModel):
+    words: list[str]
+
+
+@router.post("/{unit_id}/touch-words", dependencies=[Depends(check_pin)])
+def touch_words(unit_id: int, req: TouchWordsRequest, session: Session = Depends(get_session)):
+    """Mark words as freshly added so they show up in 'latest words' practice."""
+    wanted = {normalize(w) for raw in req.words for w in raw.replace(",", "\n").split("\n") if w.strip()}
+    touched: list[str] = []
+    for word in session.exec(select(Word).where(Word.unit_id == unit_id)).all():
+        if normalize(word.text) in wanted:
+            word.created_at = datetime.utcnow()
+            session.add(word)
+            touched.append(word.text)
+    session.commit()
+    return {"touched": touched}
 
 
 class RebuildRequest(BaseModel):

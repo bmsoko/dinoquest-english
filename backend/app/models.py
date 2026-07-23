@@ -21,6 +21,9 @@ class Word(SQLModel, table=True):
     example_sentence: str = ""
     emoji: str = ""
     category: str = ""
+    # Drives the "latest words" practice mode. NULL = added before this was
+    # tracked, and therefore not "recent".
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow, index=True)
 
 
 class ExerciseItem(SQLModel, table=True):

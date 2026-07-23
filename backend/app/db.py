@@ -39,6 +39,13 @@ def init_db() -> None:
             if "theme" not in player_cols:
                 conn.execute(text("ALTER TABLE player ADD COLUMN theme VARCHAR DEFAULT 'dinos'"))
 
+    if "word" in tables and "created_at" not in [
+        c["name"] for c in inspector.get_columns("word")
+    ]:
+        # Existing rows stay NULL so they don't flood "latest words"
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE word ADD COLUMN created_at DATETIME"))
+
     SQLModel.metadata.create_all(engine)
 
     from sqlmodel import Session, select
