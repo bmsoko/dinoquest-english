@@ -25,6 +25,7 @@ export function Dictation({ items, onAnswer, onFinish }: ActivityProps) {
     () => cleanTarget.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
     [cleanTarget],
   )
+  const isSentence = cleanTarget.includes(' ')
 
   useEffect(() => {
     if (target) speak(target)
@@ -77,11 +78,16 @@ export function Dictation({ items, onAnswer, onFinish }: ActivityProps) {
     <div className="flex flex-col gap-5">
       <ProgressDots total={items.length} current={index} />
       <p className="text-center font-bold text-ink-soft">
-        {cleanTarget.includes(' ') ? t.sentence_help : t.dictation_help}
+        {isSentence ? t.sentence_help : t.dictation_help}
       </p>
-      <div className="text-center">
-        <WordIcon word={cleanTarget} emoji={item.emoji} fallback="✏️" />
-      </div>
+      {/* The icon is a picture-hint for the word being spelled. A sentence has
+          nothing single to illustrate, so show nothing rather than a generic
+          emoji that looks like a clue. */}
+      {!isSentence && (
+        <div className="text-center">
+          <WordIcon word={cleanTarget} emoji={item.emoji} fallback="✏️" />
+        </div>
+      )}
       <ListenButtons text={target} />
 
       <div
