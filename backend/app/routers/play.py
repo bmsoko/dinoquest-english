@@ -134,6 +134,21 @@ def get_round(
     ).all()
     if recent_word_ids is not None:
         items = [i for i in items if i.word_id in recent_word_ids]
+
+    # Letter-by-letter activities are for single short words only — never
+    # sentences (spelling a whole sentence is miserable for a 7-year-old).
+    if type in ("dictation", "anagram", "missing_letter"):
+        single_word = []
+        for item in items:
+            try:
+                payload = json.loads(item.payload)
+            except ValueError:
+                continue
+            target = (payload.get("text") or payload.get("answer") or "").strip()
+            if target and " " not in target:
+                single_word.append(item)
+        items = single_word
+
     if not items:
         raise HTTPException(status_code=404, detail=f"No hay ejercicios de tipo {type}")
 
