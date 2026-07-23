@@ -120,6 +120,62 @@ def add_words(unit_id: int, req: AddWordsRequest, session: Session = Depends(get
     return {"added": added, "skipped": skipped}
 
 
+class RebuildRequest(BaseModel):
+    single_word_only: bool = False  # drop multi-word entries (spelling test)
+
+
+@router.post("/{unit_id}/rebuild", dependencies=[Depends(check_pin)])
+def rebuild_unit(unit_id: int, req: RebuildRequest, session: Session = Depends(get_session)):
+    """Backfill exercise types added since the unit was created, and optionally
+    drop multi-word entries so a spelling unit stays single-word."""
+    unit = session.get(Unit, unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unidad no encontrada")
+
+    words = session.exec(select(Word).where(Word.unit_id == unit_id)).all()
+    removed: list[str] = []
+    if req.single_word_only:
+        for word in list(words):
+            if " " in word.text.strip():
+                for ex in session.exec(
+                    select(ExerciseItem).where(ExerciseItem.word_id == word.id)
+                ).all():
+                    session.delete(ex)
+                for stat in session.exec(
+                    select(WordStat).where(WordStat.word_id == word.id)
+                ).all():
+                    session.delete(stat)
+                session.delete(word)
+                removed.append(word.text)
+                words.remove(word)
+        session.commit()
+
+    pool = [w.text for w in words]
+    have = {
+        (e.word_id, e.type)
+        for e in session.exec(select(ExerciseItem).where(ExerciseItem.unit_id == unit_id)).all()
+    }
+    added = 0
+    for word in words:
+        for ex in build_word_exercises(word.text, [p for p in pool if p != word.text]):
+            if (word.id, ex["type"]) in have:
+                continue
+            payload = {k: v for k, v in ex.items() if k != "type"}
+            session.add(
+                ExerciseItem(
+                    unit_id=unit_id,
+                    word_id=word.id,
+                    type=ex["type"],
+                    payload=json.dumps(payload, ensure_ascii=False),
+                    difficulty=1,
+                )
+            )
+            have.add((word.id, ex["type"]))
+            added += 1
+    session.commit()
+    return {"words": len(words), "removed": removed, "exercises_added": added}
+
+
 @router.post("", dependencies=[Depends(check_pin)])
 def save_unit(req: SaveUnitRequest, session: Session = Depends(get_session)):
     unit = Unit(
