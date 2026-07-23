@@ -9,11 +9,14 @@ import type { PlayerState, Theme } from '../types'
 export function CustomizeModal({
   player,
   themes,
+  playerId,
   onClose,
   onSaved,
 }: {
   player: PlayerState
   themes: Theme[]
+  /** Edit a profile other than the active one (profile picker). */
+  playerId?: number
   onClose: () => void
   onSaved: () => void
 }) {
@@ -25,7 +28,11 @@ export function CustomizeModal({
   const save = async () => {
     setSaving(true)
     try {
-      await api.post('/player/profile', { avatar, theme })
+      await api.post(
+        '/player/profile',
+        { avatar, theme },
+        playerId ? { headers: { 'X-Player-Id': String(playerId) } } : undefined,
+      )
       onSaved()
     } finally {
       setSaving(false)

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useLang } from '../i18n'
 import { ThemePicker } from '../components/ThemePicker'
-import type { PlayerListItem, Theme } from '../types'
+import { CustomizeModal } from '../components/CustomizeModal'
+import type { PlayerListItem, PlayerState, Theme } from '../types'
 
 const AVATARS = ['🦖', '🦕', '🐉', '🦄', '🐯', '🦁', '🐸', '🦊', '🐼', '🐵', '🦅', '🐙']
 
@@ -20,6 +21,12 @@ export function Profiles() {
   const [askPinFor, setAskPinFor] = useState<PlayerListItem | null>(null)
   const [pinTry, setPinTry] = useState('')
   const [pinError, setPinError] = useState(false)
+  const [editing, setEditing] = useState<PlayerState | null>(null)
+
+  const openEditor = async (p: PlayerListItem) => {
+    const res = await api.get('/player', { headers: { 'X-Player-Id': String(p.id) } })
+    setEditing(res.data)
+  }
 
   useEffect(() => {
     api.get('/players').then((r) => setPlayers(r.data))
@@ -63,20 +70,30 @@ export function Profiles() {
 
       <div className="stagger grid w-full grid-cols-2 gap-4 sm:grid-cols-3">
         {players.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => pick(p)}
-            className="card-toy btn-chunky flex flex-col items-center gap-1 p-5 bg-white border-sand-deep"
-            style={{ borderWidth: '3px 3px 8px' }}
-          >
-            <span className="text-6xl">{p.avatar}</span>
-            <span className="font-display text-xl font-extrabold">
-              {p.name} {p.has_pin && '🔒'}
-            </span>
-            <span className="text-xs font-bold text-ink-soft">
-              {t.level} {p.level} · 🦖 {p.dino_count}
-            </span>
-          </button>
+          <div key={p.id} className="relative">
+            <button
+              onClick={() => pick(p)}
+              className="card-toy btn-chunky flex w-full flex-col items-center gap-1 p-5 bg-white border-sand-deep"
+              style={{ borderWidth: '3px 3px 8px' }}
+            >
+              <span className="text-6xl">{p.avatar}</span>
+              <span className="font-display text-xl font-extrabold">
+                {p.name} {p.has_pin && '🔒'}
+              </span>
+              <span className="text-xs font-bold text-ink-soft">
+                {t.level} {p.level} · 🦖 {p.dino_count}
+              </span>
+            </button>
+            <button
+              onClick={() => openEditor(p)}
+              title={t.customize}
+              aria-label={`${t.customize} ${p.name}`}
+              className="btn-chunky absolute -right-1 -top-1 bg-berry border-berry-deep px-2.5 py-1 text-base text-white"
+              style={{ borderWidth: '2px 2px 4px', minHeight: 0 }}
+            >
+              ✏️
+            </button>
+          </div>
         ))}
 
         {!adding && (
@@ -133,6 +150,19 @@ export function Profiles() {
             {t.create_player}
           </button>
         </div>
+      )}
+
+      {editing && (
+        <CustomizeModal
+          player={editing}
+          themes={themes}
+          playerId={editing.id}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null)
+            api.get('/players').then((r) => setPlayers(r.data))
+          }}
+        />
       )}
 
       {askPinFor && (

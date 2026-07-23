@@ -11,6 +11,7 @@ export const SEGMENTS: { type: ActivityType; color: string; emoji: string }[] = 
   { type: 'memory', color: '#9b6ddb', emoji: '🃏' },
   { type: 'anagram', color: '#0f6e56', emoji: '🔤' },
   { type: 'missing_letter', color: '#c14d2c', emoji: '🔡' },
+  { type: 'sentence_spelling', color: '#26709f', emoji: '📜' },
 ]
 
 export function activityLabel(type: ActivityType, t: ReturnType<typeof useLang>['t']): string {
@@ -22,6 +23,7 @@ export function activityLabel(type: ActivityType, t: ReturnType<typeof useLang>[
     case 'memory': return t.memory_title
     case 'anagram': return t.anagram_title
     case 'missing_letter': return t.missing_title
+    case 'sentence_spelling': return t.sentence_title
   }
 }
 

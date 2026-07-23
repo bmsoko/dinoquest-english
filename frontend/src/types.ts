@@ -6,6 +6,7 @@ export type ActivityType =
   | 'memory'
   | 'anagram'
   | 'missing_letter'
+  | 'sentence_spelling'
 
 export interface ExerciseItem {
   exercise_id?: number

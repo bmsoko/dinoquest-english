@@ -127,9 +127,11 @@ def get_round(
             ],
         }
 
+    # Sentence spelling reuses the dictation pool, filtered to full sentences
+    query_type = "dictation" if type == "sentence_spelling" else type
     items = session.exec(
         select(ExerciseItem).where(
-            ExerciseItem.unit_id.in_(active_unit_ids), ExerciseItem.type == type
+            ExerciseItem.unit_id.in_(active_unit_ids), ExerciseItem.type == query_type
         )
     ).all()
     if recent_word_ids is not None:
@@ -137,17 +139,25 @@ def get_round(
 
     # Letter-by-letter activities are for single short words only — never
     # sentences (spelling a whole sentence is miserable for a 7-year-old).
-    if type in ("dictation", "anagram", "missing_letter"):
-        single_word = []
+    if type in ("dictation", "anagram", "missing_letter", "sentence_spelling"):
+        want_sentences = type == "sentence_spelling"
+        filtered = []
         for item in items:
             try:
                 payload = json.loads(item.payload)
             except ValueError:
                 continue
             target = (payload.get("text") or payload.get("answer") or "").strip()
-            if target and " " not in target:
-                single_word.append(item)
-        items = single_word
+            if not target:
+                continue
+            words_in_target = len(target.split())
+            # Word spelling = a single word; sentence spelling = 3+ words.
+            # Two-word phrases ("go shopping") suit neither, and stay in the
+            # listen/memory/unscramble pools instead.
+            keep = words_in_target >= 3 if want_sentences else words_in_target == 1
+            if keep:
+                filtered.append(item)
+        items = filtered
 
     if not items:
         raise HTTPException(status_code=404, detail=f"No hay ejercicios de tipo {type}")

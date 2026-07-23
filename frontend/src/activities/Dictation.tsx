@@ -76,7 +76,9 @@ export function Dictation({ items, onAnswer, onFinish }: ActivityProps) {
   return (
     <div className="flex flex-col gap-5">
       <ProgressDots total={items.length} current={index} />
-      <p className="text-center font-bold text-ink-soft">{t.dictation_help}</p>
+      <p className="text-center font-bold text-ink-soft">
+        {cleanTarget.includes(' ') ? t.sentence_help : t.dictation_help}
+      </p>
       <div className="text-center">
         <WordIcon word={cleanTarget} emoji={item.emoji} fallback="✏️" />
       </div>

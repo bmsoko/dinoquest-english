@@ -39,6 +39,7 @@ const ACTIVITY_COMPONENTS: Record<ActivityType, typeof ListenChoose> = {
   memory: MemoryMatch,
   anagram: Anagram,
   missing_letter: MissingLetter,
+  sentence_spelling: Dictation, // same letter-box UI, sentence-length targets
 }
 
 export function Play() {
