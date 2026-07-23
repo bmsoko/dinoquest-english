@@ -54,8 +54,16 @@ export function Home() {
       )}
 
       <div className="text-center">
-        <div className="text-7xl animate-bounce-big inline-block">{companion?.emoji ?? player?.theme_emoji ?? '🦖'}</div>
-        <h1 className="mt-2 font-display text-5xl font-extrabold tracking-tight">
+        <div className="relative inline-block">
+          <div className="animate-idle-bob inline-block text-8xl drop-shadow-[0_8px_10px_rgba(30,58,43,0.25)]">
+            {companion?.emoji ?? player?.theme_emoji ?? '🦖'}
+          </div>
+          <span className="absolute -right-3 top-1 animate-twinkle text-2xl">✨</span>
+        </div>
+        <h1
+          className="mt-1 font-display text-6xl font-extrabold tracking-tight"
+          style={{ textShadow: '0 3px 0 rgba(255,255,255,0.9), 0 5px 0 rgba(30,58,43,0.13)' }}
+        >
           Dino<span className="text-jungle">Quest</span>
         </h1>
         <p className="font-bold text-ink-soft">{t.home_subtitle}</p>
@@ -86,7 +94,7 @@ export function Home() {
 
       <Link
         to="/play"
-        className="btn-chunky bg-jungle border-jungle-deep text-white text-4xl px-16 py-6 text-center w-full max-w-xs"
+        className="btn-hero btn-chunky flex items-center justify-center gap-2 bg-jungle border-jungle-deep text-white text-4xl px-16 py-7 text-center w-full max-w-xs shadow-[0_14px_28px_-10px_rgba(13,107,82,0.7)]"
       >
         ▶ {t.play}
       </Link>
@@ -151,7 +159,10 @@ export function Home() {
         </div>
       )}
 
-      <Link to="/parents" className="mt-auto text-sm font-bold text-ink-soft underline opacity-60">
+      <Link
+        to="/parents"
+        className="mt-auto rounded-full border-2 border-sand-deep bg-white/90 px-4 py-1.5 text-sm font-bold text-ink-soft shadow-sm backdrop-blur-sm"
+      >
         ⚙️ {t.parent_zone}
       </Link>
     </div>

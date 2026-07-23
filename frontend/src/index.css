@@ -4,23 +4,23 @@
   --font-display: "Baloo 2", system-ui, sans-serif;
   --font-body: "Nunito", system-ui, sans-serif;
 
-  --color-sand: #fbf3e2;
-  --color-sand-deep: #f3e6c9;
-  --color-ink: #233d2e;
-  --color-ink-soft: #51695a;
-  --color-jungle: #1d9e75;
-  --color-jungle-deep: #0f6e56;
-  --color-jungle-pale: #d6f3e7;
-  --color-sun: #f5a623;
-  --color-sun-deep: #c77f0a;
-  --color-sun-pale: #fdeccb;
-  --color-coral: #f0704b;
-  --color-coral-deep: #c14d2c;
-  --color-coral-pale: #fde0d5;
-  --color-sky: #4aa3df;
-  --color-sky-deep: #2a6fa3;
-  --color-berry: #9b6ddb;
-  --color-berry-deep: #6f44ab;
+  --color-sand: #fdf6e6;
+  --color-sand-deep: #f0e0bd;
+  --color-ink: #1e3a2b;
+  --color-ink-soft: #55705f;
+  --color-jungle: #1fa87b;
+  --color-jungle-deep: #0d6b52;
+  --color-jungle-pale: #d3f5e8;
+  --color-sun: #f9a825;
+  --color-sun-deep: #c47a05;
+  --color-sun-pale: #fdedcb;
+  --color-coral: #f4703f;
+  --color-coral-deep: #c24a1f;
+  --color-coral-pale: #fde1d3;
+  --color-sky: #46a8e6;
+  --color-sky-deep: #26709f;
+  --color-berry: #a06fe3;
+  --color-berry-deep: #6f42b0;
 
   --animate-pop: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   --animate-wiggle: wiggle 0.45s ease-in-out;
@@ -28,6 +28,11 @@
   --animate-float-up: float-up 1s ease-out forwards;
   --animate-shake: shake 0.4s ease-in-out;
   --animate-crack: crack 0.5s ease-in-out infinite;
+  --animate-idle-bob: idle-bob 3s ease-in-out infinite;
+  --animate-sway: sway 6s ease-in-out infinite;
+  --animate-drift: drift 18s linear infinite;
+  --animate-twinkle: twinkle 2.4s ease-in-out infinite;
+  --animate-rise: rise 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 }
 
 @keyframes pop {
@@ -57,16 +62,42 @@
   0%, 100% { transform: rotate(-4deg); }
   50% { transform: rotate(4deg); }
 }
+/* Gentle life for hero characters — makes the screen feel alive at rest */
+@keyframes idle-bob {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-9px) rotate(1.5deg); }
+}
+@keyframes sway {
+  0%, 100% { transform: rotate(-2.5deg); }
+  50% { transform: rotate(2.5deg); }
+}
+@keyframes drift {
+  0% { transform: translate(0, -6vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.75; }
+  90% { opacity: 0.75; }
+  100% { transform: translate(14vw, 106vh) rotate(420deg); opacity: 0; }
+}
+@keyframes twinkle {
+  0%, 100% { transform: scale(0.7); opacity: 0.35; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+@keyframes rise {
+  0% { transform: translateY(18px) scale(0.96); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
 
 body {
   font-family: var(--font-body);
-  background-color: var(--color-sand);
-  background-image:
-    radial-gradient(circle at 12% 18%, rgba(29, 158, 117, 0.07) 0, rgba(29, 158, 117, 0.07) 140px, transparent 141px),
-    radial-gradient(circle at 88% 75%, rgba(245, 166, 35, 0.08) 0, rgba(245, 166, 35, 0.08) 180px, transparent 181px),
-    radial-gradient(circle at 75% 12%, rgba(240, 112, 75, 0.06) 0, rgba(240, 112, 75, 0.06) 110px, transparent 111px);
   color: var(--color-ink);
   -webkit-tap-highlight-color: transparent;
+  /* Warm sky at the top fading into sunlit sand, plus a soft paper speckle */
+  background-color: var(--color-sand);
+  background-image:
+    radial-gradient(rgba(30, 58, 43, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, #d8f0ff 0%, #eafaf1 26%, var(--color-sand) 62%);
+  background-size: 22px 22px, 100% 100%;
+  background-attachment: fixed;
+  min-height: 100vh;
 }
 
 h1, h2, h3, .font-display {
@@ -77,25 +108,55 @@ h1, h2, h3, .font-display {
 .btn-chunky {
   font-family: var(--font-display);
   font-weight: 800;
-  border-radius: 1.25rem;
-  border-bottom-width: 6px;
+  border-radius: 1.5rem;
+  border-bottom-width: 7px;
   border-bottom-style: solid;
+  min-height: 3.25rem;
   transition: transform 0.08s ease, border-bottom-width 0.08s ease, filter 0.15s ease;
   user-select: none;
   cursor: pointer;
 }
 .btn-chunky:active:not(:disabled) {
-  transform: translateY(4px);
+  transform: translateY(5px);
   border-bottom-width: 2px;
 }
 .btn-chunky:disabled {
   filter: saturate(0.4) brightness(1.05);
   cursor: default;
 }
+/* Primary calls-to-action get a subtle breathing pulse so kids know where to tap */
+.btn-hero {
+  animation: idle-bob 3.4s ease-in-out infinite;
+}
 
+/* Sticker-cutout card: white die-cut edge + soft drop shadow */
 .card-toy {
   background: white;
-  border-radius: 1.5rem;
-  border: 3px solid var(--color-sand-deep);
-  box-shadow: 0 6px 0 rgba(35, 61, 46, 0.08);
+  border-radius: 2rem;
+  border: 4px solid white;
+  box-shadow:
+    0 0 0 3px var(--color-sand-deep),
+    0 10px 0 -2px rgba(30, 58, 43, 0.09),
+    0 18px 30px -12px rgba(30, 58, 43, 0.28);
+}
+
+/* Staggered entrance for lists/grids */
+.stagger > * {
+  animation: rise 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.04s; }
+.stagger > *:nth-child(2) { animation-delay: 0.09s; }
+.stagger > *:nth-child(3) { animation-delay: 0.14s; }
+.stagger > *:nth-child(4) { animation-delay: 0.19s; }
+.stagger > *:nth-child(5) { animation-delay: 0.24s; }
+.stagger > *:nth-child(6) { animation-delay: 0.29s; }
+.stagger > *:nth-child(7) { animation-delay: 0.34s; }
+.stagger > *:nth-child(8) { animation-delay: 0.39s; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

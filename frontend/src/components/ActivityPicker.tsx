@@ -8,7 +8,7 @@ export function ActivityPicker({ onPick }: { onPick: (type: ActivityType) => voi
   return (
     <div className="flex flex-col items-center gap-3">
       <p className="font-display font-bold text-ink-soft">{t.or_pick}</p>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+      <div className="stagger grid grid-cols-2 gap-2.5 sm:grid-cols-3">
         {SEGMENTS.map((s) => (
           <button
             key={s.type}

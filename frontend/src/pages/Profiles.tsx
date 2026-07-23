@@ -60,7 +60,7 @@ export function Profiles() {
     <div className="mx-auto flex min-h-screen max-w-xl flex-col items-center gap-8 p-6 pt-14">
       <h1 className="font-display text-4xl font-extrabold">{t.who_plays}</h1>
 
-      <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-3">
+      <div className="stagger grid w-full grid-cols-2 gap-4 sm:grid-cols-3">
         {players.map((p) => (
           <button
             key={p.id}

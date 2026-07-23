@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { LangProvider } from './i18n'
+import { JungleBackdrop } from './components/JungleBackdrop'
 import { Home } from './pages/Home'
 import { Profiles } from './pages/Profiles'
 import { Play } from './pages/Play'
@@ -9,6 +10,7 @@ import { ParentZone } from './pages/ParentZone'
 export default function App() {
   return (
     <LangProvider>
+      <JungleBackdrop />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
