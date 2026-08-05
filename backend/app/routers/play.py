@@ -30,6 +30,30 @@ BOX_WEIGHTS = {1: 8, 2: 4, 3: 2, 4: 1}
 RECENT_DAYS = 14
 
 
+def coverage_order(word_ids: list[int], stats: dict) -> list[int]:
+    """Order words so every one is served before any repeats: least-shown first,
+    struggling words (low Leitner box) earlier within a shown level, then random."""
+    def key(wid: int):
+        st = stats.get(wid)
+        return (st.shown if st else 0, st.box if st else 1, random.random())
+
+    return sorted(word_ids, key=key)
+
+
+def bump_shown(word_ids, stats, session, player_id) -> None:
+    """Record that these words were served — increments the coverage counter."""
+    for wid in word_ids:
+        if wid is None:
+            continue
+        st = stats.get(wid)
+        if not st:
+            st = WordStat(word_id=wid, player_id=player_id)
+            stats[wid] = st
+        st.shown += 1
+        session.add(st)
+    session.commit()
+
+
 def get_player(session: Session, player_id: int) -> Player:
     player = session.get(Player, player_id)
     if not player:
@@ -102,6 +126,12 @@ def get_round(
         if not recent_word_ids:
             raise HTTPException(status_code=404, detail="No hay palabras nuevas")
 
+    # Per-player coverage counters drive least-shown-first selection everywhere
+    stats = {
+        s.word_id: s
+        for s in session.exec(select(WordStat).where(WordStat.player_id == player_id)).all()
+    }
+
     if type == "memory":
         words = session.exec(select(Word).where(Word.unit_id.in_(active_unit_ids), Word.emoji != "")).all()
         if recent_word_ids is not None:
@@ -120,7 +150,10 @@ def get_round(
             unique_words.append(w)
         if len(unique_words) < 4:
             raise HTTPException(status_code=404, detail="No hay suficientes palabras")
-        picked = random.sample(unique_words, min(count, len(unique_words)))
+        by_id = {w.id: w for w in unique_words}
+        picked_ids = coverage_order(list(by_id), stats)[: min(count, len(by_id))]
+        bump_shown(picked_ids, stats, session, player_id)
+        picked = [by_id[i] for i in picked_ids]
         return {
             "type": "memory",
             "items": [
@@ -164,24 +197,26 @@ def get_round(
     if not items:
         raise HTTPException(status_code=404, detail=f"No hay ejercicios de tipo {type}")
 
-    stats = {
-        s.word_id: s
-        for s in session.exec(select(WordStat).where(WordStat.player_id == player_id)).all()
-    }
-
-    def weight(item: ExerciseItem) -> int:
-        if item.word_id:
-            stat = stats.get(item.word_id)
-            return BOX_WEIGHTS.get(stat.box, 4) if stat else BOX_WEIGHTS[1]
-        return 3
+    # Group by word so a round never repeats a word, then serve least-shown
+    # words first (coverage). Sentence/grammar items have no word link.
+    by_word: dict[int, list[ExerciseItem]] = {}
+    loose: list[ExerciseItem] = []
+    for item in items:
+        if item.word_id is None:
+            loose.append(item)
+        else:
+            by_word.setdefault(item.word_id, []).append(item)
 
     chosen: list[ExerciseItem] = []
-    pool = list(items)
-    while pool and len(chosen) < count:
-        weights = [weight(i) for i in pool]
-        pick = random.choices(pool, weights=weights)[0]
-        pool.remove(pick)
-        chosen.append(pick)
+    for wid in coverage_order(list(by_word), stats):
+        if len(chosen) >= count:
+            break
+        chosen.append(random.choice(by_word[wid]))
+    if len(chosen) < count and loose:
+        random.shuffle(loose)
+        chosen.extend(loose[: count - len(chosen)])
+
+    bump_shown([i.word_id for i in chosen], stats, session, player_id)
 
     words = {w.id: w for w in session.exec(select(Word).where(Word.unit_id.in_(active_unit_ids))).all()}
     out = []
@@ -199,6 +234,22 @@ def get_round(
             }
         )
     return {"type": type, "items": out}
+
+
+@router.get("/word-ranking")
+def word_ranking(
+    player_id: int = Depends(player_id_header), session: Session = Depends(get_session)
+):
+    """How many times each word has been served to this player (most first)."""
+    words = {w.id: w.text for w in session.exec(select(Word)).all()}
+    stats = session.exec(select(WordStat).where(WordStat.player_id == player_id)).all()
+    ranking = [
+        {"word": words.get(s.word_id, "?"), "shown": s.shown, "box": s.box}
+        for s in stats
+        if s.shown > 0
+    ]
+    ranking.sort(key=lambda r: r["shown"], reverse=True)
+    return ranking
 
 
 class ItemResult(BaseModel):

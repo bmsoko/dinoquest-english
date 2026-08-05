@@ -51,6 +51,8 @@ export function Play() {
   const [species, setSpecies] = useState<Species[]>([])
   const [phase, setPhase] = useState<Phase>('wheel')
   const [activity, setActivity] = useState<ActivityType>('listen_choose')
+  // Last activity actually played — the wheel avoids repeating it next spin
+  const [lastActivity, setLastActivity] = useState<ActivityType | null>(null)
   const [items, setItems] = useState<ExerciseItem[]>([])
   const [combo, setCombo] = useState(0)
   const [mood, setMood] = useState<CompanionMood>('idle')
@@ -92,6 +94,7 @@ export function Play() {
     try {
       const res = await api.get('/play/round', { params: { type, count: 6, scope } })
       setActivity(type)
+      setLastActivity(type)
       setItems(res.data.items)
       setPhase('round')
     } catch {
@@ -102,6 +105,7 @@ export function Play() {
           try {
             const res = await api.get('/play/round', { params: { type: fb, count: 6, scope } })
             setActivity(fb)
+            setLastActivity(fb)
             setItems(res.data.items)
             setPhase('round')
             return
@@ -177,7 +181,7 @@ export function Play() {
               </span>
             )}
             <h1 className="font-display text-3xl font-extrabold">{t.next_mission}</h1>
-            <Wheel onResult={(type) => { setFocusedActivity(null); startRound(type) }} />
+            <Wheel avoid={lastActivity} onResult={(type) => { setFocusedActivity(null); startRound(type) }} />
             <ActivityPicker onPick={(type) => { setFocusedActivity(type); startRound(type, false) }} />
           </div>
         )}

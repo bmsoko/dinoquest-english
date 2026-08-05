@@ -29,7 +29,14 @@ export function activityLabel(type: ActivityType, t: ReturnType<typeof useLang>[
 
 const SEG_ANGLE = 360 / SEGMENTS.length
 
-export function Wheel({ onResult }: { onResult: (type: ActivityType) => void }) {
+export function Wheel({
+  onResult,
+  avoid,
+}: {
+  onResult: (type: ActivityType) => void
+  /** Activity to skip so two spins in a row are never the same. */
+  avoid?: ActivityType | null
+}) {
   const { t } = useLang()
   const [rotation, setRotation] = useState(0)
   const [spinning, setSpinning] = useState(false)
@@ -39,7 +46,8 @@ export function Wheel({ onResult }: { onResult: (type: ActivityType) => void }) 
     if (spinning) return
     setSpinning(true)
     sfx.spin()
-    const pickedIndex = Math.floor(Math.random() * SEGMENTS.length)
+    const candidates = SEGMENTS.map((_, i) => i).filter((i) => SEGMENTS[i].type !== avoid)
+    const pickedIndex = candidates[Math.floor(Math.random() * candidates.length)]
     // Land the picked segment's center under the top pointer
     const target =
       rotation +

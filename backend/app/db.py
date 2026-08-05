@@ -46,6 +46,12 @@ def init_db() -> None:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE word ADD COLUMN created_at DATETIME"))
 
+    if "wordstat" in tables and "shown" not in [
+        c["name"] for c in inspector.get_columns("wordstat")
+    ]:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE wordstat ADD COLUMN shown INTEGER DEFAULT 0"))
+
     SQLModel.metadata.create_all(engine)
 
     from sqlmodel import Session, select

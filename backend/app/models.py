@@ -58,6 +58,7 @@ class WordStat(SQLModel, table=True):
     box: int = 1  # Leitner box 1 (struggling) .. 4 (mastered)
     correct: int = 0
     wrong: int = 0
+    shown: int = 0  # how many times this word has been served — drives coverage
     last_result_at: Optional[datetime] = None
 
 
