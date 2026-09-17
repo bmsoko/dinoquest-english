@@ -186,10 +186,15 @@ def get_round(
             if not target:
                 continue
             words_in_target = len(target.split())
-            # Word spelling = a single word; sentence spelling = 3+ words.
-            # Two-word phrases ("go shopping") suit neither, and stay in the
-            # listen/memory/unscramble pools instead.
-            keep = words_in_target >= 3 if want_sentences else words_in_target == 1
+            # Sentence spelling = 3+ words. Word spelling (dictation) allows
+            # short vocab up to 2 words ("dining room"). The letter games
+            # (anagram / missing letter) stay strictly single-word.
+            if want_sentences:
+                keep = words_in_target >= 3
+            elif type == "dictation":
+                keep = 1 <= words_in_target <= 2
+            else:
+                keep = words_in_target == 1
             if keep:
                 filtered.append(item)
         items = filtered

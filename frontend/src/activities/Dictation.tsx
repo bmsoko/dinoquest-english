@@ -25,7 +25,8 @@ export function Dictation({ items, onAnswer, onFinish }: ActivityProps) {
     () => cleanTarget.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
     [cleanTarget],
   )
-  const isSentence = cleanTarget.includes(' ')
+  // 3+ words is a sentence; a 2-word term ("dining room") is still a word to spell
+  const isSentence = cleanTarget.split(/\s+/).filter(Boolean).length >= 3
   // A weekday renders as a calendar chip; anything else needs a real emoji
   const hasIcon = !isSentence && (!!weekdayAbbr(cleanTarget) || !!item?.emoji)
 
