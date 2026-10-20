@@ -88,8 +88,28 @@ def test_assemble_paper():
     print("ok: test_assemble_paper")
 
 
+def test_grant_rewards():
+    from datetime import date
+    from sqlmodel import SQLModel, Session, create_engine
+    from app.models import Player
+    from app.game import grant_rewards, XP_PER_CORRECT
+
+    engine = create_engine("sqlite://")
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as s:
+        p = Player(name="T")
+        s.add(p); s.commit(); s.refresh(p)
+        events = grant_rewards(s, p, n_correct=3, today=date.today())
+        s.commit()
+        assert p.xp == 3 * XP_PER_CORRECT
+        assert p.streak >= 1
+        assert isinstance(events, list)
+    print("ok: test_grant_rewards")
+
+
 if __name__ == "__main__":
     test_testitem_model_fields()
     test_content_integrity()
     test_assemble_paper()
+    test_grant_rewards()
     print("ALL PASSED")
