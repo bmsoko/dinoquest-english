@@ -69,3 +69,13 @@ class OwnedDino(SQLModel, table=True):
     stage: int = 1  # 1..3
     xp: int = 0
     acquired_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class TestItem(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    topic: str = Field(index=True)  # "unit4"
+    section: str = Field(index=True)  # listening|vocabulary|grammar|reading|writing
+    format: str  # listen_pick|mcq|gap_bank|match|order|reading
+    prompt: str
+    payload: str  # JSON, shape depends on format
+    active: bool = True
