@@ -149,7 +149,7 @@ export function Play() {
   const ActivityComponent = ACTIVITY_COMPONENTS[activity]
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-4 pb-8">
+    <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-4 p-3 pb-6 sm:p-4 sm:pb-8">
       <div className="flex items-center gap-3">
         <Link to="/" className="btn-chunky bg-white border-sand-deep px-3 py-1.5 text-lg" style={{ borderWidth: '2px 2px 5px' }}>
           ←
@@ -161,7 +161,7 @@ export function Play() {
         <TimerDisplay timer={timer} />
       </div>
 
-      <div className="relative flex-1">
+      <div className="relative flex flex-1 flex-col">
         {xpFly && (
           <div className="pointer-events-none absolute right-4 top-4 z-20 animate-float-up font-display text-2xl font-extrabold text-jungle">
             +{xpFly} XP
@@ -193,8 +193,8 @@ export function Play() {
         )}
 
         {phase === 'round' && (
-          <div className="card-toy p-5 sm:p-8">
-            <h2 className="mb-4 text-center font-display text-2xl font-extrabold text-jungle-deep">
+          <div className="card-toy flex flex-1 flex-col justify-center p-5 sm:p-8">
+            <h2 className="mb-5 text-center font-display text-2xl font-extrabold text-jungle-deep sm:text-3xl">
               {activityLabel(activity, t)}
             </h2>
             <ActivityComponent items={items} onAnswer={handleAnswer} onFinish={handleFinish} />
