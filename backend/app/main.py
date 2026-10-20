@@ -5,7 +5,7 @@ from .config import settings
 from .db import init_db
 from .routers import play, player, units
 
-app = FastAPI(title="DinoQuest English API")
+app = FastAPI(title="Newton English Quest API")
 
 app.add_middleware(
     CORSMiddleware,
