@@ -107,9 +107,41 @@ def test_grant_rewards():
     print("ok: test_grant_rewards")
 
 
+def test_endpoints():
+    import os, tempfile, importlib
+    os.environ["DATABASE_URL"] = "sqlite:///" + tempfile.mkdtemp() + "/t.db"
+    import app.config as cfg
+    importlib.reload(cfg)
+    import app.db as dbmod
+    importlib.reload(dbmod)
+    import app.main as mainmod
+    importlib.reload(mainmod)
+    from fastapi.testclient import TestClient
+
+    with TestClient(mainmod.app) as c:  # context triggers startup (seeding)
+        topics = c.get("/api/v1/test/topics").json()
+        assert any(t["topic"] == "unit4" and t["items"] > 0 for t in topics), topics
+
+        paper = c.get("/api/v1/test/paper", params={"topic": "unit4"}).json()
+        assert paper["title"] == "Unit 4 · Family & Homes"
+        assert [s["section"] for s in paper["sections"]] == [
+            "listening", "vocabulary", "grammar", "reading", "writing"]
+        assert len(paper["sections"][0]["items"]) == 3  # listening count
+
+        res = c.post("/api/v1/test/result", headers={"X-Player-Id": "1"}, json={
+            "topic": "unit4", "correct": 12, "total": 16,
+            "sections": [{"section": "grammar", "correct": 4, "total": 4}]})
+        body = res.json()
+        assert res.status_code == 200, body
+        assert body["xp_earned"] == 120  # 12 * 10
+        assert body["report"]["total"] == 16 and body["report"]["correct"] == 12
+    print("ok: test_endpoints")
+
+
 if __name__ == "__main__":
     test_testitem_model_fields()
     test_content_integrity()
     test_assemble_paper()
     test_grant_rewards()
+    test_endpoints()  # must be last: reloads modules
     print("ALL PASSED")
