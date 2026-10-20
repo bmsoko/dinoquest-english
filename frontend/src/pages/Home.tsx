@@ -89,10 +89,10 @@ export function Home() {
           <span className="absolute -right-3 top-1 animate-twinkle text-2xl">✨</span>
         </div>
         <h1
-          className="mt-1 font-display text-6xl font-extrabold tracking-tight"
+          className="mt-1 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-5xl"
           style={{ textShadow: '0 3px 0 rgba(255,255,255,0.9), 0 5px 0 rgba(30,58,43,0.13)' }}
         >
-          Dino<span className="text-jungle">Quest</span>
+          Newton English<br /><span className="text-jungle">Quest</span>
         </h1>
         <p className="font-bold text-ink-soft">{t.home_subtitle}</p>
       </div>
