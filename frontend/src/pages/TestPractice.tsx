@@ -45,7 +45,7 @@ export function TestPractice() {
       const data: TestPaper = res.data
       const flat: Screen[] = data.sections.flatMap((sec) => sec.items.map((item) => ({ section: sec.section, item })))
       if (flat.length === 0) { setPhase('empty'); return }
-      setPaper(data); setScreens(flat); setIdx(0); setScores({}); setGraded(null); setPhase('running')
+      setPaper(data); setScreens(flat); setIdx(0); setScores({}); setGraded(null); setXpEarned(0); setEvents([]); setPhase('running')
     } catch { setPhase('empty') }
   }
 
@@ -67,11 +67,15 @@ export function TestPractice() {
     const correct = Object.values(finalScores).reduce((a, b) => a + b.correct, 0)
     const total = Object.values(finalScores).reduce((a, b) => a + b.total, 0)
     const sections = Object.entries(finalScores).map(([section, v]) => ({ section, ...v }))
-    const res = await api.post('/test/result', { topic: 'unit4', correct, total, sections })
     setScores(finalScores)
-    setXpEarned(res.data.xp_earned)
-    setEvents(res.data.events ?? [])
-    setPlayer((p) => (p ? { ...p, ...res.data.player } : p))
+    try {
+      const res = await api.post('/test/result', { topic: 'unit4', correct, total, sections })
+      setXpEarned(res.data.xp_earned)
+      setEvents(res.data.events ?? [])
+      setPlayer((p) => (p ? { ...p, ...res.data.player } : p))
+    } catch {
+      setXpEarned(0)
+    }
     setPhase('report')
     if (correct === total && total > 0) confetti({ particleCount: 90, spread: 80, origin: { y: 0.7 } })
   }
@@ -110,7 +114,7 @@ export function TestPractice() {
       {phase === 'empty' && (
         <div className="card-toy mx-auto mt-8 max-w-sm p-8 text-center">
           <div className="text-5xl mb-3">🦕</div>
-          <p className="font-bold text-ink-soft">—</p>
+          <p className="font-bold text-ink-soft">{t.no_units}</p>
           <Link to="/" className="btn-chunky mt-5 inline-block bg-white border-sand-deep px-6 py-2" style={{ borderWidth: '2px 2px 6px' }}>{t.back}</Link>
         </div>
       )}
@@ -118,7 +122,7 @@ export function TestPractice() {
       {phase === 'running' && cur && Renderer && (
         <>
           <div className="text-center font-display font-extrabold text-ink-soft">
-            {t.test_part} {partNumber} {t.test_of} 5 · {sectionLabel(cur.section)}
+            {t.test_part} {partNumber} {t.test_of} {paper!.sections.length} · {sectionLabel(cur.section)}
           </div>
           <div className="card-toy p-5 sm:p-8">
             <Renderer key={idx} item={cur.item} onGraded={onGraded} />
