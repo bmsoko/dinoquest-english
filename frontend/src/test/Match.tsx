@@ -11,9 +11,10 @@ export function Match({ item, onGraded }: TestRendererProps) {
   const [selectedLeft, setSelectedLeft] = useState<string | null>(null)
   const [matched, setMatched] = useState<Record<string, string>>({}) // left -> right
   const [wrongFlash, setWrongFlash] = useState<string | null>(null)
+  const [mistakes, setMistakes] = useState<Set<string>>(new Set())
 
   const finish = (m: Record<string, string>) => {
-    const correct = pairs.filter((p) => m[p.left] === p.right).length
+    const correct = pairs.filter((p) => m[p.left] === p.right && !mistakes.has(p.left)).length
     correct === pairs.length ? sfx.correct() : sfx.wrong()
     onGraded(correct, pairs.length)
   }
@@ -27,6 +28,7 @@ export function Match({ item, onGraded }: TestRendererProps) {
       setSelectedLeft(null)
       if (Object.keys(m).length === pairs.length) finish(m)
     } else {
+      setMistakes((prev) => new Set(prev).add(selectedLeft))
       setWrongFlash(right)
       sfx.wrong()
       setTimeout(() => setWrongFlash(null), 500)
