@@ -60,7 +60,7 @@ export function MemoryMatch({ items, onAnswer, onFinish }: ActivityProps) {
     <div className="flex flex-col gap-5">
       <ProgressDots total={items.length} current={matched.length} />
       <p className="text-center font-bold text-ink-soft">{t.memory_help}</p>
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4">
         {cards.map((card) => {
           const isUp = flipped.includes(card.key) || matched.includes(card.matchKey)
           const isMatched = matched.includes(card.matchKey)
@@ -68,7 +68,7 @@ export function MemoryMatch({ items, onAnswer, onFinish }: ActivityProps) {
             <button
               key={card.key}
               onClick={() => flip(card)}
-              className={`btn-chunky flex h-20 items-center justify-center px-1 transition-all duration-300 ${
+              className={`btn-chunky flex h-20 items-center justify-center px-1 transition-all duration-300 sm:h-28 md:h-32 ${
                 isMatched
                   ? 'bg-jungle-pale border-jungle text-jungle-deep scale-95'
                   : isUp
