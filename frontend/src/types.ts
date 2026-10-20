@@ -139,3 +139,41 @@ export interface ExamStatus {
   words_total?: number
   words_mastered?: number
 }
+
+export type TestSection = 'listening' | 'vocabulary' | 'grammar' | 'reading' | 'writing'
+export type TestFormat = 'listen_pick' | 'mcq' | 'gap_bank' | 'match' | 'order' | 'reading'
+
+export interface TestItem {
+  id: number
+  format: TestFormat
+  prompt: string
+  // format-specific (flattened payload)
+  audio?: string
+  options?: string[]
+  answer?: string
+  bank?: string[]
+  sentences?: { text: string; answer: string }[]
+  pairs?: { left: string; right: string }[]
+  tokens?: string[]
+  passage?: string
+  questions?: { q: string; options: string[]; answer: string }[]
+  emoji?: string
+}
+
+export interface TestPaper {
+  topic: string
+  title: string
+  sections: { section: TestSection; items: TestItem[] }[]
+}
+
+export interface TestReport {
+  topic: string
+  correct: number
+  total: number
+  sections: { section: TestSection; correct: number; total: number }[]
+}
+
+export interface TestRendererProps {
+  item: TestItem
+  onGraded: (correct: number, total: number) => void
+}
