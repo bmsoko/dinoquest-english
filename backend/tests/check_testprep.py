@@ -56,7 +56,40 @@ def test_content_integrity():
     print("ok: test_content_integrity")
 
 
+def test_assemble_paper():
+    import json as _json
+    from types import SimpleNamespace
+    from app.testprep_builder import assemble_paper, serialize_item
+    from app.testprep_content import SECTION_ORDER
+
+    def fake(i, section, fmt="mcq", active=True):
+        payload = _json.dumps({"options": ["a", "b"], "answer": "a"})
+        return SimpleNamespace(id=i, section=section, format=fmt, prompt=f"q{i}", payload=payload, active=active)
+
+    items = []
+    k = 0
+    for s in SECTION_ORDER:
+        for _ in range(5):
+            items.append(fake(k, s)); k += 1
+    items.append(fake(999, "grammar", active=False))  # inactive excluded
+
+    counts = {"listening": 3, "vocabulary": 4, "grammar": 4, "reading": 1, "writing": 2}
+    paper = assemble_paper(items, counts)
+
+    assert [sec["section"] for sec in paper] == SECTION_ORDER  # fixed order
+    got = {sec["section"]: len(sec["items"]) for sec in paper}
+    assert got == counts, got
+    # serialize flattens payload into the item dict
+    one = paper[0]["items"][0]
+    assert one["format"] == "mcq" and one["answer"] == "a" and "id" in one
+    # inactive never chosen
+    ids = [it["id"] for sec in paper for it in sec["items"]]
+    assert 999 not in ids
+    print("ok: test_assemble_paper")
+
+
 if __name__ == "__main__":
     test_testitem_model_fields()
     test_content_integrity()
+    test_assemble_paper()
     print("ALL PASSED")
