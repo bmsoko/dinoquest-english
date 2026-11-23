@@ -9,8 +9,8 @@ from ..db import get_session
 from ..game import XP_PER_CORRECT, grant_rewards, xp_into_level
 from ..models import TestItem
 from ..routers.units import check_pin
-from ..testprep_builder import assemble_paper
-from ..testprep_content import PAPER_COUNTS, TOPICS
+from ..testprep_builder import assemble_paper, topic_layout
+from ..testprep_content import TOPICS
 
 router = APIRouter(prefix="/test", tags=["test"])
 
@@ -26,7 +26,9 @@ def list_topics(session: Session = Depends(get_session)):
     for topic, meta in TOPICS.items():
         n = sum(1 for r in rows if r.topic == topic)
         if n:
-            out.append({"topic": topic, "title": meta["title"], "items": n})
+            order, _ = topic_layout(meta)
+            out.append({"topic": topic, "title": meta["title"], "items": n, "parts": len(order),
+                        "emoji": meta.get("emoji", "📝"), "minutes": meta.get("minutes")})
     return out
 
 
@@ -35,8 +37,10 @@ def get_paper(topic: str = "unit4", session: Session = Depends(get_session)):
     items = session.exec(select(TestItem).where(TestItem.topic == topic)).all()
     if not items:
         raise HTTPException(status_code=404, detail="No hay preguntas para este tema")
-    title = TOPICS.get(topic, {}).get("title", topic)
-    return {"topic": topic, "title": title, "sections": assemble_paper(items, PAPER_COUNTS)}
+    meta = TOPICS.get(topic, {})
+    order, counts = topic_layout(meta)
+    title = meta.get("title", topic)
+    return {"topic": topic, "title": title, "sections": assemble_paper(items, counts, order)}
 
 
 class SectionScore(BaseModel):

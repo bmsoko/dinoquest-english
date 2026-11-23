@@ -140,8 +140,11 @@ export interface ExamStatus {
   words_mastered?: number
 }
 
-export type TestSection = 'listening' | 'vocabulary' | 'grammar' | 'reading' | 'writing'
-export type TestFormat = 'listen_pick' | 'mcq' | 'gap_bank' | 'match' | 'order' | 'reading'
+// Unit 4 sections, plus Starters parts (st_l1..st_l4, st_rw1..st_rw5)
+export type TestSection = string
+export type TestFormat =
+  | 'listen_pick' | 'mcq' | 'gap_bank' | 'match' | 'order' | 'reading'
+  | 'listen_picture' | 'listen_write' | 'listen_colour' | 'yes_no' | 'spell_letters' | 'one_word'
 
 export interface TestItem {
   id: number
@@ -158,6 +161,29 @@ export interface TestItem {
   passage?: string
   questions?: { q: string; options: string[]; answer: string }[]
   emoji?: string
+  // Starters formats
+  name?: string
+  question?: string
+  accept?: string[]
+  slow?: boolean
+  objects?: string[]
+  target?: string
+  colour?: string
+  colours?: string[]
+  style?: 'tick' | 'word'
+  scene?: string
+  statements?: { emoji?: string; text: string; answer: 'yes' | 'no' }[]
+  bank_emoji?: Record<string, string>
+  title?: string
+}
+
+export interface TestTopic {
+  topic: string
+  title: string
+  items: number
+  parts: number
+  emoji: string
+  minutes: number | null
 }
 
 export interface TestPaper {

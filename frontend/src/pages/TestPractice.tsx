@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { api } from '../api'
 import { useLang } from '../i18n'
-import type { GameEvent, PlayerState, Species, TestItem, TestPaper, TestSection } from '../types'
+import type { GameEvent, PlayerState, Species, TestItem, TestPaper, TestSection, TestTopic } from '../types'
 import { Companion } from '../components/Companion'
 import { RewardOverlay } from '../components/RewardOverlay'
 import { ListenPick } from '../test/ListenPick'
@@ -12,15 +12,26 @@ import { GapBank } from '../test/GapBank'
 import { Match } from '../test/Match'
 import { Order } from '../test/Order'
 import { Reading } from '../test/Reading'
+import { ListenPicture } from '../test/ListenPicture'
+import { TypeAnswer } from '../test/TypeAnswer'
+import { ListenColour } from '../test/ListenColour'
+import { YesNo } from '../test/YesNo'
+import { SpellLetters } from '../test/SpellLetters'
 
 type Phase = 'intro' | 'running' | 'report' | 'empty'
 type Screen = { section: TestSection; item: TestItem }
 
-const RENDERERS = { listen_pick: ListenPick, mcq: Mcq, gap_bank: GapBank, match: Match, order: Order, reading: Reading }
+const RENDERERS = {
+  listen_pick: ListenPick, mcq: Mcq, gap_bank: GapBank, match: Match, order: Order, reading: Reading,
+  listen_picture: ListenPicture, listen_write: TypeAnswer, listen_colour: ListenColour,
+  yes_no: YesNo, spell_letters: SpellLetters, one_word: TypeAnswer,
+}
 
 export function TestPractice() {
   const { t } = useLang()
   const [phase, setPhase] = useState<Phase>('intro')
+  const [topics, setTopics] = useState<TestTopic[] | null>(null)
+  const [topic, setTopic] = useState('unit4')
   const [paper, setPaper] = useState<TestPaper | null>(null)
   const [screens, setScreens] = useState<Screen[]>([])
   const [idx, setIdx] = useState(0)
@@ -36,12 +47,16 @@ export function TestPractice() {
     setPlayer(p.data); setSpecies(s.data)
   }, [])
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    api.get('/test/topics').then((r) => setTopics(r.data)).catch(() => setTopics([]))
+  }, [])
 
   const companion = player?.dinos.find((d) => d.id === player.companion_id) ?? null
 
-  const start = async () => {
+  const start = async (which: string = topic) => {
+    setTopic(which)
     try {
-      const res = await api.get('/test/paper', { params: { topic: 'unit4' } })
+      const res = await api.get('/test/paper', { params: { topic: which } })
       const data: TestPaper = res.data
       const flat: Screen[] = data.sections.flatMap((sec) => sec.items.map((item) => ({ section: sec.section, item })))
       if (flat.length === 0) { setPhase('empty'); return }
@@ -69,7 +84,7 @@ export function TestPractice() {
     const sections = Object.entries(finalScores).map(([section, v]) => ({ section, ...v }))
     setScores(finalScores)
     try {
-      const res = await api.post('/test/result', { topic: 'unit4', correct, total, sections })
+      const res = await api.post('/test/result', { topic, correct, total, sections })
       setXpEarned(res.data.xp_earned)
       setEvents(res.data.events ?? [])
       setPlayer((p) => (p ? { ...p, ...res.data.player } : p))
@@ -101,13 +116,26 @@ export function TestPractice() {
       </div>
 
       {phase === 'intro' && (
-        <div className="card-toy mx-auto mt-8 max-w-sm p-8 text-center">
-          <div className="text-6xl mb-2">📝</div>
-          <h2 className="font-display text-2xl font-extrabold">Unit 4 · Family &amp; Homes</h2>
-          <p className="mt-2 font-bold text-ink-soft">{t.test_intro}</p>
-          <button onClick={start} className="btn-chunky mt-6 bg-jungle border-jungle-deep text-white text-xl px-8 py-3">
-            {t.test_start}
-          </button>
+        <div className="mx-auto mt-4 flex w-full max-w-md flex-col gap-3">
+          <h2 className="text-center font-display text-2xl font-extrabold">{t.test_choose}</h2>
+          {topics === null && <p className="text-center font-bold text-ink-soft">…</p>}
+          {topics?.length === 0 && <p className="text-center font-bold text-ink-soft">{t.no_units}</p>}
+          {topics?.map((tp) => (
+            <button key={tp.topic} onClick={() => start(tp.topic)}
+              className="card-toy flex items-center gap-4 p-4 text-left transition hover:-translate-y-0.5">
+              <span className="text-5xl">{tp.emoji}</span>
+              <span className="flex-1">
+                <span className="block font-display text-xl font-extrabold text-ink">{tp.title}</span>
+                <span className="block font-bold text-ink-soft">
+                  {tp.parts} {t.test_parts}{tp.minutes ? ` · ~${tp.minutes} ${t.test_minutes}` : ''}
+                </span>
+              </span>
+              <span className="font-display text-2xl text-jungle">▶</span>
+            </button>
+          ))}
+          {topics?.some((tp) => tp.topic.startsWith('starters')) && (
+            <p className="text-center text-sm font-bold text-ink-soft">{t.test_disclaimer}</p>
+          )}
         </div>
       )}
 
@@ -121,6 +149,7 @@ export function TestPractice() {
 
       {phase === 'running' && cur && Renderer && (
         <>
+          <div className="text-center font-display text-sm font-extrabold text-ink-soft">{paper!.title}</div>
           <div className="text-center font-display font-extrabold text-ink-soft">
             {t.test_part} {partNumber} {t.test_of} {paper!.sections.length} · {sectionLabel(cur.section)}
           </div>
@@ -142,13 +171,14 @@ export function TestPractice() {
           <p className="font-bold text-jungle-deep">+{xpEarned} XP</p>
           <div className="mt-4 flex flex-col gap-1 text-left">
             {Object.entries(scores).map(([section, v]) => (
-              <div key={section} className="flex justify-between rounded-lg bg-sand px-3 py-1 font-bold">
-                <span>{sectionLabel(section)}</span><span>{v.correct}/{v.total}</span>
+              <div key={section} className="flex justify-between gap-3 rounded-lg bg-sand px-3 py-1 font-bold">
+                <span>{sectionLabel(section)}</span><span className="shrink-0">{v.correct}/{v.total}</span>
               </div>
             ))}
           </div>
           <div className="mt-6 flex flex-col gap-3">
-            <button onClick={start} className="btn-chunky bg-jungle border-jungle-deep text-white text-xl px-8 py-3">🔁 {t.test_play_again}</button>
+            <button onClick={() => start()} className="btn-chunky bg-jungle border-jungle-deep text-white text-xl px-8 py-3">🔁 {t.test_play_again}</button>
+            <button onClick={() => setPhase('intro')} className="btn-chunky bg-white border-sand-deep text-ink text-lg px-8 py-3" style={{ borderWidth: '2px 2px 6px' }}>{t.test_change}</button>
             <Link to="/" className="btn-chunky bg-white border-sand-deep text-ink text-lg px-8 py-3" style={{ borderWidth: '2px 2px 6px' }}>{t.finish}</Link>
           </div>
         </div>

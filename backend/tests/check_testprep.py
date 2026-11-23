@@ -56,6 +56,52 @@ def test_content_integrity():
     print("ok: test_content_integrity")
 
 
+def test_starters_integrity():
+    from app.testprep_content import TOPICS
+    from app.testprep_builder import topic_layout
+
+    def norm(x):
+        return x.strip().lower()
+
+    for key in ("starters_listening", "starters_rw"):
+        meta = TOPICS[key]
+        order, counts = topic_layout(meta)
+        assert set(counts) == set(order), key
+        assert "Practice" in meta["title"], "must not look like official material"
+        pool = {}
+        for it in meta["items"]:
+            assert it["section"] in order, it
+            assert it["prompt"]
+            p, f = it["payload"], it["format"]
+            pool[it["section"]] = pool.get(it["section"], 0) + 1
+            if f == "listen_picture":
+                assert p["audio"] and p["answer"] in p["options"] and len(set(p["options"])) == len(p["options"]), it
+            elif f in ("listen_write", "one_word"):
+                assert p["answer"] and p["question"], it
+                assert norm(p["answer"]) not in [norm(a) for a in p["accept"]], it
+                if f == "listen_write":
+                    assert p["audio"], it
+            elif f == "listen_colour":
+                assert p["target"] in p["objects"] and p["colour"] in p["colours"], it
+                assert p["colour"] in p["audio"] and len(set(p["objects"])) == len(p["objects"]), it
+            elif f == "yes_no":
+                assert p["style"] in ("tick", "word") and p["statements"], it
+                assert all(s["answer"] in ("yes", "no") for s in p["statements"]), it
+            elif f == "spell_letters":
+                assert p["emoji"] and p["answer"].isalpha() and len(set(p["answer"])) > 1, it
+            elif f == "gap_bank":
+                assert len(p["bank"]) > len(p["sentences"]), "bank needs distractors"
+                for s in p["sentences"]:
+                    assert s["answer"] in p["bank"] and "___" in s["text"], it
+                assert len({s["answer"] for s in p["sentences"]}) == len(p["sentences"]), it
+                assert set(p["bank_emoji"]) == set(p["bank"]), it
+            else:
+                raise AssertionError(f"unknown format {f}")
+        for section, need in counts.items():
+            assert pool.get(section, 0) > need or (need == 1 and pool.get(section, 0) >= 2), (key, section, pool.get(section), need)
+    print("ok: test_starters_integrity")
+
+
 def test_assemble_paper():
     import json as _json
     from types import SimpleNamespace
@@ -128,6 +174,15 @@ def test_endpoints():
             "listening", "vocabulary", "grammar", "reading", "writing"]
         assert len(paper["sections"][0]["items"]) == 3  # listening count
 
+        keys = {t["topic"]: t for t in topics}
+        assert keys["starters_listening"]["parts"] == 4 and keys["starters_rw"]["parts"] == 5, topics
+        sl = c.get("/api/v1/test/paper", params={"topic": "starters_listening"}).json()
+        assert [s["section"] for s in sl["sections"]] == ["st_l1", "st_l2", "st_l3", "st_l4"]
+        assert all(len(s["items"]) == 5 for s in sl["sections"])
+        rw = c.get("/api/v1/test/paper", params={"topic": "starters_rw"}).json()
+        assert [len(s["items"]) for s in rw["sections"]] == [5, 1, 5, 1, 5]
+        assert "bank_emoji" in rw["sections"][3]["items"][0]
+
         res = c.post("/api/v1/test/result", headers={"X-Player-Id": "1"}, json={
             "topic": "unit4", "correct": 12, "total": 16,
             "sections": [{"section": "grammar", "correct": 4, "total": 4}]})
@@ -141,6 +196,7 @@ def test_endpoints():
 if __name__ == "__main__":
     test_testitem_model_fields()
     test_content_integrity()
+    test_starters_integrity()
     test_assemble_paper()
     test_grant_rewards()
     test_endpoints()  # must be last: reloads modules

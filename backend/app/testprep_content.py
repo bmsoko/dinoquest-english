@@ -177,6 +177,10 @@ _UNIT4_ITEMS = [
                      {"text": "The garden is ___ the house.", "answer": "outside"}]}},
 ]
 
+from .starters_content import STARTERS_LISTENING, STARTERS_READING_WRITING  # noqa: E402
+
 TOPICS = {
-    "unit4": {"title": "Unit 4 · Family & Homes", "items": _UNIT4_ITEMS},
+    "unit4": {"title": "Unit 4 · Family & Homes", "emoji": "🏠", "minutes": 6, "items": _UNIT4_ITEMS},
+    "starters_listening": STARTERS_LISTENING,
+    "starters_rw": STARTERS_READING_WRITING,
 }

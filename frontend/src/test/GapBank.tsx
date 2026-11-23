@@ -30,6 +30,7 @@ export function GapBank({ item, onGraded }: TestRendererProps) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-center font-bold text-ink-soft">{t.gap_help}</p>
+      {item.title && <p className="text-center font-display text-xl font-extrabold text-ink">{item.title}</p>}
       <div className="flex flex-col gap-2">
         {sentences.map((s, i) => {
           const fill = fills[i]
@@ -55,7 +56,7 @@ export function GapBank({ item, onGraded }: TestRendererProps) {
           <button key={w} onClick={() => place(w)} disabled={done || used.has(w)}
             className={`btn-chunky px-4 py-2 text-lg ${used.has(w) ? 'opacity-30' : 'bg-sun border-sun-deep text-white'}`}
             style={{ borderWidth: '2px 2px 4px' }}>
-            {w}
+            {item.bank_emoji?.[w] && <span className="mr-1">{item.bank_emoji[w]}</span>}{w}
           </button>
         ))}
       </div>
