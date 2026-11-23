@@ -63,6 +63,18 @@ def init_db() -> None:
             session.add(Player(name="Jugador 1", avatar="🦖"))
             session.commit()
 
+    # First-run seed of test-practice content (only topics with no items yet)
+    from .models import TestItem
+    from .testprep_content import TOPICS
+    from .routers.testprep import _load_topic
+
+    with Session(engine) as session:
+        for topic in TOPICS:
+            exists = session.exec(select(TestItem).where(TestItem.topic == topic)).first()
+            if not exists:
+                _load_topic(session, topic)
+        session.commit()
+
     # Data fix: weekdays seeded with number emojis get themed, distinct icons
     weekday_emojis = {
         "monday": "🚌",

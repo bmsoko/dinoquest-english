@@ -6,6 +6,7 @@ import { Profiles } from './pages/Profiles'
 import { Play } from './pages/Play'
 import { DinoDex } from './pages/DinoDex'
 import { ParentZone } from './pages/ParentZone'
+import { TestPractice } from './pages/TestPractice'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/play" element={<Play />} />
           <Route path="/dinodex" element={<DinoDex />} />
           <Route path="/parents" element={<ParentZone />} />
+          <Route path="/test" element={<TestPractice />} />
         </Routes>
       </BrowserRouter>
     </LangProvider>

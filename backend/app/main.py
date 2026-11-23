@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .db import init_db
-from .routers import play, player, units
+from .routers import play, player, testprep, units
 
 app = FastAPI(title="Newton English Quest API")
 
@@ -25,6 +25,7 @@ app.include_router(units.router, prefix="/api/v1")
 app.include_router(play.router, prefix="/api/v1")
 app.include_router(player.router, prefix="/api/v1")
 app.include_router(player.players_router, prefix="/api/v1")
+app.include_router(testprep.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health")

@@ -134,6 +134,13 @@ export function Home() {
         <span className="text-2xl">🆕 {t.latest_words}</span>
       </Link>
 
+      <Link
+        to="/test"
+        className="btn-chunky flex flex-col items-center bg-berry border-berry-deep text-white w-full max-w-xs px-8 py-3 text-center"
+      >
+        <span className="text-2xl">📝 {t.test_practice}</span>
+      </Link>
+
       {exam?.exists && (
         <Link
           to="/play?mode=exam"

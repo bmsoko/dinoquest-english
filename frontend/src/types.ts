@@ -139,3 +139,67 @@ export interface ExamStatus {
   words_total?: number
   words_mastered?: number
 }
+
+// Unit 4 sections, plus Starters parts (st_l1..st_l4, st_rw1..st_rw5)
+export type TestSection = string
+export type TestFormat =
+  | 'listen_pick' | 'mcq' | 'gap_bank' | 'match' | 'order' | 'reading'
+  | 'listen_picture' | 'listen_write' | 'listen_colour' | 'yes_no' | 'spell_letters' | 'one_word'
+
+export interface TestItem {
+  id: number
+  format: TestFormat
+  prompt: string
+  // format-specific (flattened payload)
+  audio?: string
+  options?: string[]
+  answer?: string
+  bank?: string[]
+  sentences?: { text: string; answer: string }[]
+  pairs?: { left: string; right: string }[]
+  tokens?: string[]
+  passage?: string
+  questions?: { q: string; options: string[]; answer: string }[]
+  emoji?: string
+  // Starters formats
+  name?: string
+  question?: string
+  accept?: string[]
+  slow?: boolean
+  objects?: string[]
+  target?: string
+  colour?: string
+  colours?: string[]
+  style?: 'tick' | 'word'
+  scene?: string
+  statements?: { emoji?: string; text: string; answer: 'yes' | 'no' }[]
+  bank_emoji?: Record<string, string>
+  title?: string
+}
+
+export interface TestTopic {
+  topic: string
+  title: string
+  items: number
+  parts: number
+  emoji: string
+  minutes: number | null
+}
+
+export interface TestPaper {
+  topic: string
+  title: string
+  sections: { section: TestSection; items: TestItem[] }[]
+}
+
+export interface TestReport {
+  topic: string
+  correct: number
+  total: number
+  sections: { section: TestSection; correct: number; total: number }[]
+}
+
+export interface TestRendererProps {
+  item: TestItem
+  onGraded: (correct: number, total: number) => void
+}

@@ -8,17 +8,12 @@ from sqlmodel import Session, select
 
 from ..db import get_session
 from ..game import (
-    EGG_POINTS_PER_CORRECT,
     XP_PER_CORRECT,
-    level_for_xp,
-    roll_species,
-    stage_for_companion_xp,
-    updated_streak,
+    grant_rewards,
     week_start_of,
     xp_into_level,
 )
-from ..models import ExerciseItem, OwnedDino, Player, Unit, Word, WordStat
-from ..themes import ALL_SPECIES_BY_ID
+from ..models import ExerciseItem, Player, Unit, Word, WordStat
 
 router = APIRouter(prefix="/play", tags=["play"])
 
@@ -274,7 +269,6 @@ def post_result(
 ):
     player = get_player(session, player_id)
     today = date.today()
-    events: list[dict] = []
 
     for r in req.results:
         if r.word_id is None:
@@ -292,59 +286,9 @@ def post_result(
         session.add(stat)
 
     n_correct = sum(1 for r in req.results if r.correct)
+    events = grant_rewards(session, player, n_correct, today)
     xp_earned = n_correct * XP_PER_CORRECT
 
-    old_level = level_for_xp(player.xp)
-    player.xp += xp_earned
-    new_level = level_for_xp(player.xp)
-    if new_level > old_level:
-        events.append({"type": "level_up", "level": new_level})
-    player.level = new_level
-
-    roll_week(player, today)
-    player.weekly_xp += xp_earned
-
-    player.streak = updated_streak(player.streak, player.last_played, today)
-    player.last_played = today
-
-    player.egg_progress += n_correct * EGG_POINTS_PER_CORRECT
-    while player.egg_progress >= 100:
-        player.egg_progress -= 100
-        species = roll_species(player.theme)
-        dino = OwnedDino(player_id=player.id, species_id=species["id"])
-        session.add(dino)
-        session.commit()
-        session.refresh(dino)
-        if player.companion_id is None:
-            player.companion_id = dino.id
-        events.append(
-            {
-                "type": "egg_hatched",
-                "dino": {"id": dino.id, "species_id": species["id"], "rarity": species["rarity"], "stage": 1},
-            }
-        )
-
-    # Companion gains the same XP and may evolve
-    if player.companion_id:
-        companion = session.get(OwnedDino, player.companion_id)
-        if companion and companion.player_id == player.id:
-            old_stage = companion.stage
-            companion.xp += xp_earned
-            companion.stage = stage_for_companion_xp(companion.xp)
-            if companion.stage > old_stage:
-                species = ALL_SPECIES_BY_ID.get(companion.species_id, {})
-                stage_info = species.get("stages", [{}] * 3)[companion.stage - 1]
-                events.append(
-                    {
-                        "type": "dino_evolved",
-                        "dino_id": companion.id,
-                        "stage": companion.stage,
-                        "name": stage_info.get("name", ""),
-                    }
-                )
-            session.add(companion)
-
-    session.add(player)
     session.commit()
 
     progress, needed = xp_into_level(player.xp)
