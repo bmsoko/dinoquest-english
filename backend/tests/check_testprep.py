@@ -148,6 +148,9 @@ def test_grant_rewards():
         events = grant_rewards(s, p, n_correct=3, today=date.today())
         s.commit()
         assert p.xp == 3 * XP_PER_CORRECT
+        before = p.xp
+        grant_rewards(s, p, n_correct=10**9, today=date.today())  # capped, returns fast
+        assert p.xp - before == 100 * XP_PER_CORRECT
         assert p.streak >= 1
         assert isinstance(events, list)
     print("ok: test_grant_rewards")
@@ -190,6 +193,17 @@ def test_endpoints():
         assert res.status_code == 200, body
         assert body["xp_earned"] == 120  # 12 * 10
         assert body["report"]["total"] == 16 and body["report"]["correct"] == 12
+
+        # Client-reported scores are bounded
+        bad = [
+            {"topic": "unit4", "correct": 10**6, "total": 10**6},
+            {"topic": "unit4", "correct": 5, "total": 3},
+            {"topic": "unit4", "correct": -1, "total": 3},
+            {"topic": "nope", "correct": 1, "total": 1},
+        ]
+        for b in bad:
+            r = c.post("/api/v1/test/result", headers={"X-Player-Id": "1"}, json=b)
+            assert r.status_code in (404, 422), (b, r.status_code)
     print("ok: test_endpoints")
 
 

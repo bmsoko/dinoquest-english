@@ -2,7 +2,7 @@ import json
 from datetime import date
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from ..db import get_session
@@ -44,16 +44,23 @@ def get_paper(topic: str = "unit4", session: Session = Depends(get_session)):
 
 
 class SectionScore(BaseModel):
-    section: str
-    correct: int
-    total: int
+    section: str = Field(max_length=40)
+    correct: int = Field(ge=0, le=200)
+    total: int = Field(ge=0, le=200)
 
 
 class TestResultRequest(BaseModel):
-    topic: str
-    correct: int
-    total: int
-    sections: list[SectionScore] = []
+    topic: str = Field(max_length=40)
+    correct: int = Field(ge=0)
+    total: int = Field(ge=0)
+    sections: list[SectionScore] = Field(default=[], max_length=20)
+
+
+def max_score(meta: dict) -> int:
+    """Upper bound on gradable points in one paper. A multi-part item (gap_bank,
+    yes_no, match, reading) can score several points, so allow 10 per item."""
+    _, counts = topic_layout(meta)
+    return sum(counts.values()) * 10
 
 
 @router.post("/result")
@@ -67,6 +74,11 @@ def post_result(
     player = session.get(Player, player_id)
     if not player:
         raise HTTPException(status_code=404, detail="Jugador no encontrado")
+    meta = TOPICS.get(req.topic)
+    if meta is None:
+        raise HTTPException(status_code=404, detail="Tema desconocido")
+    if req.correct > req.total or req.total > max_score(meta):
+        raise HTTPException(status_code=422, detail="Puntaje inválido")
 
     events = grant_rewards(session, player, req.correct, date.today())
     session.commit()

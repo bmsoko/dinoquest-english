@@ -59,10 +59,16 @@ def updated_streak(streak: int, last_played: date | None, today: date) -> int:
     return 1
 
 
+MAX_CORRECT_PER_CALL = 100
+
+
 def grant_rewards(session, player, n_correct: int, today) -> list[dict]:
     """Shared reward economy: XP, level-up, weekly XP, streak, egg hatching and
     companion evolution. Caller handles the final commit. Returns game events."""
     events: list[dict] = []
+    # Defensive cap: callers pass client-reported counts; never let one call
+    # mint unbounded XP or loop over thousands of egg hatches.
+    n_correct = max(0, min(int(n_correct), MAX_CORRECT_PER_CALL))
     xp_earned = n_correct * XP_PER_CORRECT
 
     old_level = level_for_xp(player.xp)
